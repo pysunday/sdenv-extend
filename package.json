@@ -1,0 +1,61 @@
+{
+  "name": "sdenv-extend",
+  "version": "1.0.0",
+  "description": "sdenv补环境框架与浏览器网页环境的共有函数库",
+  "main": "build/sdenv-extend-cjs.js",
+  "module": "src/index.js",
+  "scripts": {
+    "test": "jest ./test/",
+    "test:debug": "node --inspect-brk node_modules/.bin/jest --runInBand ./test/",
+    "build": "rollup -c && gzip-size sdenv-extend.min.js",
+    "lint": "./node_modules/.bin/eslint src/* test/*",
+    "release": "release-it"
+  },
+  "pre-commit": [
+    "lint"
+  ],
+  "keywords": [
+    "sdenv",
+    "sdenv-extend"
+  ],
+  "files": [
+    "package.json",
+    "README.md",
+    "src",
+    "build",
+    "CHANGELOG.md"
+  ],
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/"
+  },
+  "author": "pysunday",
+  "license": "ISC",
+  "devDependencies": {
+    "@optimize-lodash/rollup-plugin": "^4.0.4",
+    "@release-it/conventional-changelog": "^8.0.1",
+    "@rollup/plugin-commonjs": "^25.0.7",
+    "@rollup/plugin-node-resolve": "^15.2.3",
+    "@rollup/plugin-terser": "^0.4.4",
+    "babel-eslint": "^10.1.0",
+    "eslint": "^8.56.0",
+    "eslint-config-airbnb-base": "^15.0.0",
+    "eslint-plugin-import": "^2.29.1",
+    "eslint-plugin-jest": "^27.6.1",
+    "gzip-size-cli": "^5.1.0",
+    "jest": "^29.7.0",
+    "release-it": "^17.0.1",
+    "rollup": "^4.9.4"
+  },
+  "dependencies": {
+    "lodash-es": "^4.17.21"
+  },
+  "jest": {
+    "moduleNameMapper": {
+      "@/(.*)": "<rootDir>/$1",
+      "@src/(.*)": "<rootDir>/src/$1"
+    }
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
