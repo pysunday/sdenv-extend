@@ -1,8 +1,15 @@
 import { sdenv } from '../globalVarible';
 
-export function funcHandle() {
+let cache = undefined;
+
+export function funcHandle(config = {}) {
+  if (!config) return
   const win = sdenv.memory.sdWindow;
-  win.Function = sdenv.tools.setNativeFuncName(new Proxy(sdenv.memory.sdFunction, {
+  if (!cache) {
+    cache = win.Function;
+  }
+  const { log, cb } = config;
+  win.Function = sdenv.tools.setNativeFuncName(new Proxy(cache, {
     apply(target, thisArg, params) {
       const new_params = params.map((param) => {
         if (param.includes('debugger')) {
@@ -13,17 +20,15 @@ export function funcHandle() {
         }
         return param
       });
-      sdenv.cache.dynamicCode.push({
+      if (log) win.console.log(`【FUNCTION APPLY】参数：${params.map(it => sdenv.tools.compressText(JSON.stringify(it)))}`);
+      const dynamicCode = {
         type: 'Function',
-        params: new_params,
-      });
-      const retFun = Reflect.apply(target, thisArg, new_params);
-      // eslint-disable-next-line
-      return (function() {
-        return function() {
-          return retFun();
-        }
-      })(params);
+        params,
+        tar_params: new_params,
+      }
+      cb?.(dynamicCode);
+      sdenv.cache.dynamicCode.push({ ...dynamicCode });
+      return Reflect.apply(target, thisArg, new_params);
     }
   }), 'Function');
   win.Function.prototype.constructor = win.Function;

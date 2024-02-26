@@ -10,18 +10,19 @@ export const sdenv = {
     timeInterval: undefined,
     timeTimeout: undefined, // 与timeInterval功能类似，区别是控制setTimeout
     isNode: typeof window === 'undefined', // node环境标识
-    isRemoveDebug: true, // 是否去除无限debug
-    isInited: false, // 是否已经初始化过了
   },
   memory: {
     runinfo: { // 程序运行时间节点
       start: new Date().getTime(), // 代码开始运行
-      died: false, // 窗口生命是否已经结束
+      isDied: false, // 窗口生命是否已经结束
     },
     timeout: null, // 存放处理setTimeout/setInterval的类
     sdEval: eval, // node内置eval
     sdWindow: typeof window !== 'undefined' ? window : global,
     sdFunction: Function,
+    sdDate: Date,
+    sdMath: Math,
+    sdenvExtend: null, // node环境缓存sdenv-extend插件，用于浏览器环境使用
   },
   cache: {
     dynamicCode: [], // 缓存动态生成代码

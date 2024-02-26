@@ -1,9 +1,10 @@
 import _merge from 'lodash-es/merge';
 import { sdenv } from './globalVarible';
-import { loopRunInit, dateAndRandomInit } from './utils/index';
+import { loopRunInit } from './utils/index';
 import * as tools from './tools/index';
 import * as adapt from './adapt/index'
-import { funcHandle, evalHandle } from './handle/index';
+import handleInit from './handle/init';
+import * as handles from './handle/index';
 
 function setWindow(win) {
   if (!win) return;
@@ -11,22 +12,55 @@ function setWindow(win) {
     sdWindow: win,
     sdEval: win.eval,
     sdFunction: win.Function,
+    sdDate: win.Date,
+    sdMath: win.Math,
   });
 }
 
-export default function(vm, win = undefined) {
-  // win为指定的window变量，在补环境框架使用时需要传入
-  if (sdenv.config.isInited) return sdenv;
-  _merge(sdenv, vm);
-  Object.prototype.sdenv = sdenv;
-  sdenv.config.isInited = true;
-  setWindow(win);
+let cache = undefined;
 
-  loopRunInit();
-  dateAndRandomInit();
-  _merge(sdenv.tools, tools);
-  _merge(sdenv.adapt, adapt); // 会用到前面的，因此放到最后
-  if (sdenv.config.isFuncProxy) funcHandle();
-  if (sdenv.config.isEvalProxy) evalHandle();
-  return sdenv;
+export default class {
+  constructor(config, win = undefined) {
+    const obj = win ? win.Object : Object;
+    if (!cache) cache = obj;
+    if (!obj.sdenv) {
+      _merge(sdenv, config || {});
+      obj.prototype.sdenv = () => sdenv;
+      setWindow(win);
+      _merge(sdenv.tools, tools);
+      _merge(sdenv.adapt, adapt); // 会用到前面tools的方法
+      loopRunInit();
+    }
+    Object.assign(this, obj.sdenv());
+  }
+
+  static sdenv() {
+    if (cache) return cache.sdenv();
+    console.error('sdenv还未被初始化!');
+  }
+
+  getHandle(name) {
+    const handleName = `${name}Handle`;
+    if (!handles[handleName]) return;
+    return (...params) => {
+      handles[handleName](...params);
+      return this;
+    }
+  }
+
+  getTools(name) {
+    if (!sdenv.tools[name]) return;
+    return (...params) => {
+      sdenv.tools[name](...params);
+      return this;
+    }
+  }
+
+  getUtils(name) {
+    if (!sdenv.utils[name]) return;
+    return (...params) => {
+      sdenv.utils[name](...params);
+      return this;
+    }
+  }
 }

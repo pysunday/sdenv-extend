@@ -4,9 +4,11 @@ import { sdenv } from '../globalVarible';
 import { addUtil } from '../tools/index';
 
 export function loopRunInit() {
+  const win = sdenv.memory.sdWindow;
   const runloop = sdenv.cache.runloop = { current: 1 };
 
   const preLoop = {}
+  let log = false;
 
   addUtil((key, idx, name, runlist = '', lens = 0) => {
     /*
@@ -32,6 +34,7 @@ export function loopRunInit() {
       lens: lens || (Array.isArray(runlist) ? runlist.length : -1) // 预期运行队列长度
     }
     runloop[key].push(loopobj);
+    if (log) win.console.log(`【RUN TASK】current：${current}`);
     return {
       addLoop: (id, it, _key) => {
         loopobj.data.push(it);
@@ -45,6 +48,9 @@ export function loopRunInit() {
       curLoop: () => arr.length,
       current,
       loopobj,
+      openLog: () => (log = true),
+      closeLog: () => (log = false),
+      isLog: () => log,
     }
   }, 'initLoop');
 

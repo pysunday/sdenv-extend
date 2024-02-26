@@ -22,7 +22,7 @@ export const setFuncNative = function(func, name) {
 };
 
 export const setFuncName = function(func, name) {
-  // 修改方法的name属性值了
+  // 修改方法的name属性值
   Object.defineProperty(func, 'name', {
     configurable: true,
     enumerable: false,

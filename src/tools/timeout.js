@@ -1,5 +1,27 @@
 import { sdenv } from '../globalVarible';
 import { isDied, isAlive } from './runtime';
+import { getTimeout } from '../handle/timeoutHandle';
+
+const currentTask = function () {
+  this.cache = null;
+  this.add = (item) => {
+    if (!this.cache) return false;
+    if (this.cache.task.includes(item)) return
+    this.cache.task.push(item);
+  }
+  this.set = (task) => this.cache = task;
+  this.get = () => this.cache;
+  this.getTime = () => {
+    if (!this.cache) return false;
+    return this.cache.time;
+  }
+  this.getTask = (idx) => {
+    if (!this.cache) return false;
+    if (typeof idx === 'number') return this.cache.task[idx]
+    return this.cache.task;
+  }
+  this.clear = () => this.cache = null;
+}
 
 class Timeout {
   constructor() {
@@ -8,11 +30,11 @@ class Timeout {
     this.lastOp = sdenv.memory.runinfo.start;
     this.isLock = false;
     this.id = 0;
+    this.currentTask = new currentTask();
   }
 
   addTimeout(func, time, type = 'timeout', idx = this.index.length) {
-    const timekey = new Date().getTime() - this.lastOp + time;
-    if (this.timeouts[timekey] === undefined) this.timeouts[timekey] = [];
+    let timekey = new sdenv.memory.sdDate().getTime() - sdenv.memory.runinfo.start + time;
     const obj = {
       func, // 方法
       type, // 类型: timeout interval
@@ -23,13 +45,22 @@ class Timeout {
       index: idx, // 编号
       id: this.id++,
     }
-    this.timeouts[timekey].push(obj);
     if (this.index[idx]) {
       this.index[idx] = obj;
     } else {
       this.index.push(obj);
     }
-    if (isAlive()) this.exec();
+    if (time === 0 && this.currentTask.get()) {
+      timekey = this.currentTask.getTime();
+      this.timeouts[timekey].push(obj);
+      this.currentTask.add(obj);
+    } else {
+      if (this.timeouts[timekey] === undefined) this.timeouts[timekey] = [];
+      this.timeouts[timekey].push(obj);
+      if (isAlive()) this.exec();
+    }
+    // const win = sdenv.memory.sdWindow;
+    // win.console.log(`程序时间${timekey}处${type}回调添加成功`);
     return idx;
   }
 
@@ -63,34 +94,46 @@ class Timeout {
   exec() {
     if (this.isLock) return;
     this.isLock = true;
-    setTimeout(() => {
+    getTimeout()(() => {
       this.isLock = false;
       this.run();
     }, 0);
   }
 
   run() {
+    const win = sdenv.memory.sdWindow;
     const times = Object.keys(this.timeouts).filter((key) => {
       if (Number(key) + sdenv.memory.runinfo.start <= this.lastOp) return false;
       return true;
     });
     if (times.length === 0) return false;
     this.lastOp = Number(times[0]) + sdenv.memory.runinfo.start;
-    this.timeouts[times[0]].forEach((cfg) => {
+    this.currentTask.set({
+      task: this.timeouts[times[0]],
+      time: times[0],
+    });
+    for(let i = 0; this.currentTask.getTask(i); i++) {
+      const cfg = this.currentTask.getTask(i);
       if (isDied() || cfg.flag === -1) return;
-      // if (cfg.id !== 3) return;
-      // debugger;
-      console.debug(`执行程序时间${times[0]}处${cfg.type}回调，延时：${cfg.time}，编号：${cfg.id}`);
-      cfg.flag = 1
-      cfg.real_time = new Date().getTime() - sdenv.memory.runinfo.start;
+      const funcStr = sdenv.tools.compressText(cfg.func.toString());
+      win.console.log(`【TIMEOUT RUN】执行程序时间${times[0]}处${cfg.type}回调，延时：${cfg.time}，编号：${cfg.id}，方法：${funcStr}`);
+      cfg.flag = 1;
+      cfg.real_time = new sdenv.memory.sdDate().getTime() - sdenv.memory.runinfo.start;
       try {
         cfg.func();
+        win.console.log(`【TIMEOUT RUNED】执行程序时间${times[0]}处${cfg.type}回调，延时：${cfg.time}，编号：${cfg.id}，方法：${funcStr}`);
       } catch (e) {
         console.error(e);
       }
       cfg.flag = 2
-    });
-    if (isAlive()) this.exec();
+    }
+    this.currentTask.clear();
+    if (isDied()) return undefined;
+    if (times.length > 1) {
+      this.run();
+    } else {
+      this.exec();
+    }
     return undefined;
   }
 }

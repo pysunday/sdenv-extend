@@ -1,13 +1,13 @@
 {
   "name": "sdenv-extend",
-  "version": "1.0.0-beta.1",
+  "version": "1.0.0-beta.7",
   "description": "sdenv补环境框架与浏览器网页环境的共有函数库",
   "main": "build/sdenv-extend-cjs.js",
   "module": "src/index.js",
   "scripts": {
     "test": "jest ./test/",
     "test:debug": "node --inspect-brk node_modules/.bin/jest --runInBand ./test/",
-    "build": "rollup -c && gzip-size sdenv-extend.min.js",
+    "build": "rollup -c && gzip-size build/sdenv-extend-iife.js",
     "lint": "./node_modules/.bin/eslint src/* test/*",
     "release": "release-it"
   },
@@ -44,10 +44,8 @@
     "gzip-size-cli": "^5.1.0",
     "jest": "^29.7.0",
     "release-it": "^17.0.1",
+    "lodash-es": "^4.17.21",
     "rollup": "^4.9.4"
-  },
-  "dependencies": {
-    "lodash-es": "^4.17.21"
   },
   "jest": {
     "moduleNameMapper": {

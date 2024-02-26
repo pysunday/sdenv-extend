@@ -1,11 +1,13 @@
 import { sdenv } from '../globalVarible';
-import { setNativeFuncName, getUtil, addUtil } from '../tools/index';
+import { setNativeFuncName } from '../tools/setFunc';
 
-function DateAndRandom() {
+let cache = undefined;
+
+function DateAndRandom({ randomFixed, datas }) {
   const win = sdenv.memory.sdWindow;
   // 无感代理时间生成方法和随机数生成方法
-  if (sdenv.config.randomFixed) {
-    this.data = sdenv.datas.dateAndRandom;
+  if ((randomFixed || sdenv.config.randomFixed) && datas) {
+    this.data = datas;
   } else {
     this.data = {};
   }
@@ -13,12 +15,7 @@ function DateAndRandom() {
     throw new Error('日期首位配置错误请检查');
   }
   this.runs = [];
-  this._now = win.Date.now;
-  this._parse = win.Date.parse;
-  this._valueOf = win.Date.prototype.valueOf;
-  this._getTime = win.Date.prototype.getTime;
-  this._toString = win.Date.prototype.toString;
-  this._random = Math.random;
+  Object.assign(this, cache);
 }
 DateAndRandom.prototype.shift = function (name) {
   const { firstMap } = this.data;
@@ -90,17 +87,25 @@ DateAndRandom.prototype.getData = function (copy) {
   return ret;
 }
 
-export function dateAndRandomInit() {
+export function dateAndRandomHandle(config = {}) {
+  if (!config) return
   const win = sdenv.memory.sdWindow;
-  if (!getUtil('dateAndRandom')) {
-    const dateAndRandom = new DateAndRandom();
-    addUtil(dateAndRandom, 'dateAndRandom');
-    win.Date = dateAndRandom.wrapClass('newdate', win.Date);
-    win.Date.now = dateAndRandom.wrapFun('now');
-    win.Date.parse = dateAndRandom.wrapFun('parse');
-    // win.Date.prototype.valueOf = dateAndRandom.wrapFun('valueOf');
-    // win.Date.prototype.getTime = dateAndRandom.wrapFun('getTime');
-    // win.Date.prototype.toString = dateAndRandom.wrapFun('toString');
-    win.Math.random = dateAndRandom.wrapFun('random', sdenv.config.randomReturn);
+  if (!cache) {
+    cache = {
+      _now: win.Date.now,
+      _parse: win.Date.parse,
+      _valueOf: win.Date.prototype.valueOf,
+      _getTime: win.Date.prototype.getTime,
+      _toString: win.Date.prototype.toString,
+      _random: win.Math.random,
+    }
   }
+  const { randomReturn = sdenv.config.randomReturn } = config;
+  const dateAndRandom = new DateAndRandom(config);
+  win.Date = dateAndRandom.wrapClass('newdate', win.Date);
+  win.Date.now = dateAndRandom.wrapFun('now');
+  win.Date.parse = dateAndRandom.wrapFun('parse');
+  win.Math.random = dateAndRandom.wrapFun('random', randomReturn);
 }
+
+export default dateAndRandomHandle;

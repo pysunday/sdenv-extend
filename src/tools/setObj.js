@@ -26,7 +26,7 @@ export const setObjName = function(obj, name) {
 };
 
 export const setNativeObjName = function(obj, name) {
-  exports.setObjName(obj, name);
-  exports.setObjNative(obj, name);
+  setObjName(obj, name);
+  setObjNative(obj, name);
   return obj;
 }
