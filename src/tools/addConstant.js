@@ -14,10 +14,10 @@ export function addConstants(Constructor, propertyMap) {
   }
 }
 
-export function mixin(target, source) {
+export function mixin(target, source, allowKeys = []) {
   const keys = Reflect.ownKeys(source);
   for (let i = 0; i < keys.length; ++i) {
-    if (keys[i] in target) {
+    if (keys[i] in target && !allowKeys.includes(keys[i])) {
       continue;
     }
     Object.defineProperty(target, keys[i], Object.getOwnPropertyDescriptor(source, keys[i]));

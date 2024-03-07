@@ -15,6 +15,11 @@ function setWindow(win) {
     sdDate: win.Date,
     sdMath: win.Math,
   });
+  if (sdenv.config.isNode) {
+    // 修改setFunc工具中的Function指向到window.Function
+    tools._setFuncInit();
+    Object.setPrototypeOf(win.window, win.Window.prototype);
+  }
 }
 
 let cache = undefined;

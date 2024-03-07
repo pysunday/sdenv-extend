@@ -1,4 +1,6 @@
-const originToString = Function.toString;
+import { sdenv } from '../globalVarible';
+
+let originToString = Function.toString;
 const canToStrigArr = [];
 const toString = function() {
   if (canToStrigArr.includes(this.name)) {
@@ -38,3 +40,10 @@ export const setNativeFuncName = function(func, name) {
   return func;
 }
 setNativeFuncName(toString, 'toString');
+
+export const _setFuncInit = function() {
+  // 修改Function指向与toString原型链指向
+  const win = sdenv.memory.sdWindow;
+  originToString = win.Function.toString;
+  toString.__proto__ = win.Function.prototype;
+}

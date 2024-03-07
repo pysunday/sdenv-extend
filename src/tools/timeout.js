@@ -115,7 +115,7 @@ class Timeout {
     for(let i = 0; this.currentTask.getTask(i); i++) {
       const cfg = this.currentTask.getTask(i);
       if (isDied() || cfg.flag === -1) return;
-      const funcStr = sdenv.tools.compressText(cfg.func.toString());
+      const funcStr = cfg.func.param ? JSON.stringify(cfg.func.param) : sdenv.tools.compressText(cfg.func.toString());
       win.console.log(`【TIMEOUT RUN】执行程序时间${times[0]}处${cfg.type}回调，延时：${cfg.time}，编号：${cfg.id}，方法：${funcStr}`);
       cfg.flag = 1;
       cfg.real_time = new sdenv.memory.sdDate().getTime() - sdenv.memory.runinfo.start;

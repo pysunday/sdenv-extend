@@ -11,10 +11,10 @@ export function timeoutHandle(config = {}) {
   const { log, cb, time, filter = () => true } = config;
   win.setTimeout = sdenv.tools.setNativeFuncName(new Proxy(cache, {
     apply: function (target, thisArg, params) {
-      if (!filter(...params)) return;
+      if (!filter || !filter(...params)) return;
       const [func, timeout] = params;
-      const funcStr = sdenv.tools.compressText(func.toString());
-      if (log) win.console.log(`【TIMEOUT APPLY】增加setTimeout事件，时间：${timeout}, 方法:${funcStr}`);
+      const funcStr = func.param ? JSON.stringify(func.param) : sdenv.tools.compressText(func.toString());
+      if (log) win.console.log(`【TIMEOUT APPLY】增加setTimeout事件，时间：${timeout}, 方法: ${funcStr}`);
       if (time !== undefined) {
         if (typeof time !== 'number') throw new Error(`time配置如果存在值则必须是数字`);
         return Reflect.apply(target, thisArg, [

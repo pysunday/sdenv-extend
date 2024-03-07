@@ -3,11 +3,12 @@ import _orderBy from 'lodash-es/orderBy';
 import { sdenv } from '../globalVarible';
 import { addUtil } from '../tools/index';
 
+const preLoop = {};
+
 export function loopRunInit() {
   const win = sdenv.memory.sdWindow;
   const runloop = sdenv.cache.runloop = { current: 1 };
 
-  const preLoop = {}
   let log = false;
 
   addUtil((key, idx, name, runlist = '', lens = 0) => {
@@ -31,7 +32,17 @@ export function loopRunInit() {
       current, // 启动编号
       idxs: [], // 实际运行下标队列
       list: Array.isArray(runlist) ? runlist.join() : runlist, // 预期运行队列
-      lens: lens || (Array.isArray(runlist) ? runlist.length : -1) // 预期运行队列长度
+      lens: lens || (Array.isArray(runlist) ? runlist.length : -1), // 预期运行队列长度
+      pre: { // 上一次循环信息
+        current: preLoop.cur,
+        curloop: preLoop.num,
+      },
+      param: {}, // 需要记录的关键数据
+    }
+    if (preLoop.loop) {
+      preLoop.loop.param[preLoop.loop.data.length - 1] = {
+        next: current // 档次编号记录到父循环中
+      }
     }
     runloop[key].push(loopobj);
     if (log) win.console.log(`【RUN TASK】current：${current}`);
@@ -42,7 +53,8 @@ export function loopRunInit() {
         Object.assign(preLoop, {
           key: _key,
           cur: current,
-          num: arr.length
+          num: arr.length,
+          loop: loopobj,
         });
       },
       curLoop: () => arr.length,

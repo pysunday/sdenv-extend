@@ -6,6 +6,7 @@ import cookieHandle from './cookieHandle';
 import batteryHandle from './batteryHandle';
 import connectionHandle from './connectionHandle';
 import dateAndRandomHandle from './dateAndRandomHandle';
+import ovserverHandle from './ovserver';
 
 const config = [{
   key: 'isEvalHandle',
@@ -28,6 +29,9 @@ const config = [{
 }, {
   key: 'isDateAndRandomHandle',
   handle: dateAndRandomHandle,
+}, {
+  key: 'isOvserver',
+  handle: ovserverHandle,
 }];
 
 export default function() {

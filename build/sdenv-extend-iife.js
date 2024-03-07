@@ -3782,10 +3782,10 @@ var sdenv = (function () {
     }
   }
 
-  function mixin(target, source) {
+  function mixin(target, source, allowKeys = []) {
     const keys = Reflect.ownKeys(source);
     for (let i = 0; i < keys.length; ++i) {
-      if (keys[i] in target) {
+      if (keys[i] in target && !allowKeys.includes(keys[i])) {
         continue;
       }
       Object.defineProperty(target, keys[i], Object.getOwnPropertyDescriptor(source, keys[i]));
@@ -3837,7 +3837,7 @@ var sdenv = (function () {
     if (params.url) win.onbeforeunload?.(params.url);
   };
 
-  const originToString = Function.toString;
+  let originToString = Function.toString;
   const canToStrigArr = [];
   const toString = function() {
     if (canToStrigArr.includes(this.name)) {
@@ -3877,6 +3877,13 @@ var sdenv = (function () {
     return func;
   };
   setNativeFuncName(toString, 'toString');
+
+  const _setFuncInit = function() {
+    // 修改Function指向与toString原型链指向
+    const win = sdenv.memory.sdWindow;
+    originToString = win.Function.toString;
+    toString.__proto__ = win.Function.prototype;
+  };
 
   const setObjNative = function(obj, name) {
     // 修改函数的toString方法返回native code标识
@@ -4131,21 +4138,21 @@ var sdenv = (function () {
     return new Proxy(obj, get_obj_handler(objname));
   };
 
-  let cache$7 = undefined;
+  let cache$8 = undefined;
 
   function timeoutHandle(config = {}) {
     if (!config) return
     const win = sdenv.memory.sdWindow;
-    if (!cache$7) {
-      cache$7 = win.setTimeout;
+    if (!cache$8) {
+      cache$8 = win.setTimeout;
     }
     const { log, cb, time, filter = () => true } = config;
-    win.setTimeout = sdenv.tools.setNativeFuncName(new Proxy(cache$7, {
+    win.setTimeout = sdenv.tools.setNativeFuncName(new Proxy(cache$8, {
       apply: function (target, thisArg, params) {
-        if (!filter(...params)) return;
+        if (!filter || !filter(...params)) return;
         const [func, timeout] = params;
-        const funcStr = sdenv.tools.compressText(func.toString());
-        if (log) win.console.log(`【TIMEOUT APPLY】增加setTimeout事件，时间：${timeout}, 方法:${funcStr}`);
+        const funcStr = func.param ? JSON.stringify(func.param) : sdenv.tools.compressText(func.toString());
+        if (log) win.console.log(`【TIMEOUT APPLY】增加setTimeout事件，时间：${timeout}, 方法: ${funcStr}`);
         if (time !== undefined) {
           if (typeof time !== 'number') throw new Error(`time配置如果存在值则必须是数字`);
           return Reflect.apply(target, thisArg, [
@@ -4165,7 +4172,7 @@ var sdenv = (function () {
     });
   }
 
-  const getTimeout = () => cache$7;
+  const getTimeout = () => cache$8;
 
   const currentTask = function () {
     this.cache = null;
@@ -4224,8 +4231,8 @@ var sdenv = (function () {
         this.timeouts[timekey].push(obj);
         if (isAlive()) this.exec();
       }
-      const win = sdenv.memory.sdWindow;
-      win.console.log(`程序时间${timekey}处${type}回调添加成功`);
+      // const win = sdenv.memory.sdWindow;
+      // win.console.log(`程序时间${timekey}处${type}回调添加成功`);
       return idx;
     }
 
@@ -4259,10 +4266,10 @@ var sdenv = (function () {
     exec() {
       if (this.isLock) return;
       this.isLock = true;
-      setImmediate(() => {
+      getTimeout()(() => {
         this.isLock = false;
         this.run();
-      });
+      }, 0);
     }
 
     run() {
@@ -4280,7 +4287,7 @@ var sdenv = (function () {
       for(let i = 0; this.currentTask.getTask(i); i++) {
         const cfg = this.currentTask.getTask(i);
         if (isDied() || cfg.flag === -1) return;
-        const funcStr = sdenv.tools.compressText(cfg.func.toString());
+        const funcStr = cfg.func.param ? JSON.stringify(cfg.func.param) : sdenv.tools.compressText(cfg.func.toString());
         win.console.log(`【TIMEOUT RUN】执行程序时间${times[0]}处${cfg.type}回调，延时：${cfg.time}，编号：${cfg.id}，方法：${funcStr}`);
         cfg.flag = 1;
         cfg.real_time = new sdenv.memory.sdDate().getTime() - sdenv.memory.runinfo.start;
@@ -4323,6 +4330,7 @@ var sdenv = (function () {
 
   var tools = /*#__PURE__*/Object.freeze({
     __proto__: null,
+    _setFuncInit: _setFuncInit,
     addConstant: addConstant,
     addConstants: addConstants,
     addInterval: addInterval,
@@ -4354,11 +4362,12 @@ var sdenv = (function () {
 
   // 循环体执行监控
 
+  const preLoop = {};
+
   function loopRunInit() {
     const win = sdenv.memory.sdWindow;
     const runloop = sdenv.cache.runloop = { current: 1 };
 
-    const preLoop = {};
     let log = false;
 
     addUtil((key, idx, name, runlist = '', lens = 0) => {
@@ -4382,8 +4391,18 @@ var sdenv = (function () {
         current, // 启动编号
         idxs: [], // 实际运行下标队列
         list: Array.isArray(runlist) ? runlist.join() : runlist, // 预期运行队列
-        lens: lens || (Array.isArray(runlist) ? runlist.length : -1) // 预期运行队列长度
+        lens: lens || (Array.isArray(runlist) ? runlist.length : -1), // 预期运行队列长度
+        pre: { // 上一次循环信息
+          current: preLoop.cur,
+          curloop: preLoop.num,
+        },
+        param: {}, // 需要记录的关键数据
       };
+      if (preLoop.loop) {
+        preLoop.loop.param[preLoop.loop.data.length - 1] = {
+          next: current // 档次编号记录到父循环中
+        };
+      }
       runloop[key].push(loopobj);
       if (log) win.console.log(`【RUN TASK】current：${current}`);
       return {
@@ -4393,7 +4412,8 @@ var sdenv = (function () {
           Object.assign(preLoop, {
             key: _key,
             cur: current,
-            num: arr.length
+            num: arr.length,
+            loop: loopobj,
           });
         },
         curLoop: () => arr.length,
@@ -4482,7 +4502,7 @@ var sdenv = (function () {
     rs: index$1
   });
 
-  let cache$6 = undefined;
+  let cache$7 = undefined;
 
   const evalmap = {
     '!new function(){eval("this.a=1")}().a': 'false',
@@ -4491,11 +4511,11 @@ var sdenv = (function () {
   function evalHandle(config = {}) {
     if (!config) return
     const win = sdenv.memory.sdWindow;
-    if (!cache$6) {
-      cache$6 = win.eval;
+    if (!cache$7) {
+      cache$7 = win.eval;
     }
     const { cb, log } = config;
-    win.eval = sdenv.tools.setNativeFuncName(new Proxy(cache$6, {
+    win.eval = sdenv.tools.setNativeFuncName(new Proxy(cache$7, {
       apply(target, thisArg, params) {
         if (log) win.console.log(`【EVAL APPLY】参数：${params.map(it => sdenv.tools.compressText(JSON.stringify(it)))}`);
         const new_params = params.map((param) => {
@@ -4520,16 +4540,16 @@ var sdenv = (function () {
     }), 'eval');
   }
 
-  let cache$5 = undefined;
+  let cache$6 = undefined;
 
   function funcHandle(config = {}) {
     if (!config) return
     const win = sdenv.memory.sdWindow;
-    if (!cache$5) {
-      cache$5 = win.Function;
+    if (!cache$6) {
+      cache$6 = win.Function;
     }
     const { log, cb } = config;
-    win.Function = sdenv.tools.setNativeFuncName(new Proxy(cache$5, {
+    win.Function = sdenv.tools.setNativeFuncName(new Proxy(cache$6, {
       apply(target, thisArg, params) {
         const new_params = params.map((param) => {
           if (param.includes('debugger')) {
@@ -4555,28 +4575,31 @@ var sdenv = (function () {
     sdenv.tools.setNativeFuncName(win.Function.prototype, '');
   }
 
-  const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+  const delay$1 = (ms) => new Promise(resolve => sdenv.memory.sdWindow.setTimeout(resolve, ms));
 
-  let cache$4 = undefined;
+  let cache$5 = undefined;
 
   function eventHandle(config = {}) {
     if (!config) return
     const win = sdenv.memory.sdWindow;
-    if (!cache$4) {
-      cache$4 = win.addEventListener;
+    if (!cache$5) {
+      cache$5 = win.addEventListener;
     }
-    const { addLog, runLog, log, addCb, runCb, cb } = config;
-    win.addEventListener = sdenv.tools.setNativeFuncName(new Proxy(cache$4, {
+    const { addLog, runLog, log, addCb, runCb, cb, filter = () => true } = config;
+    win.addEventListener = sdenv.tools.setNativeFuncName(new Proxy(cache$5, {
       apply: function (target, thisArg, params) {
+        if (!filter || !filter(...params)) return;
         const [type, callback] = params;
-        if (addLog || log) win.console.log(`【ADD EVENT】事件名：${type}`);
+        const funcStr = callback.param ? JSON.stringify(callback.param) : sdenv.tools.compressText(callback.toString());
+        if (addLog || log) win.console.log(`【ADD EVENT】事件名：${type}, 方法：${funcStr}`);
         (addCb || cb)?.(...params);
         return Reflect.apply(target, thisArg, [
           type,
           async () => {
-            if (type === 'load') await delay(0);
+            // load事件需要等下一次事件循环时执行: 延时为0的定时任务先执行
+            if (type === 'load') await delay$1(0);
             (runCb || cb)?.(...params);
-            if (runLog || log) win.console.log(`【RUN EVENT】事件名：${type}`);
+            if (runLog || log) win.console.log(`【RUN EVENT】事件名：${type}, 方法：${funcStr}`);
             callback();
           },
         ]);
@@ -4584,13 +4607,13 @@ var sdenv = (function () {
     }), 'addEventListener');
   }
 
-  let cache$3 = undefined;
+  let cache$4 = undefined;
 
   function cookieHandle(config = {}) {
     if (!config) return
     const win = sdenv.memory.sdWindow;
-    if (!cache$3) {
-      cache$3 = {
+    if (!cache$4) {
+      cache$4 = {
         cookieGet: Object.getOwnPropertyDescriptor(win.Document.prototype, 'cookie').get,
         cookieSet: Object.getOwnPropertyDescriptor(win.Document.prototype, 'cookie').set,
       };
@@ -4608,7 +4631,7 @@ var sdenv = (function () {
       configurable: false,
       enumerable: false,
       get() {
-        const cookie = cache$3.cookieGet.call(win.document);
+        const cookie = cache$4.cookieGet.call(win.document);
         if (getLog || log) win.console.log(`【GET COOKIE】长：${cookie.length} 值：${cookie}`);
         (getCb || cb)?.(cookie);
         return cookie;
@@ -4616,7 +4639,7 @@ var sdenv = (function () {
       set(val) {
         if (setLog || log) win.console.log(`【SET COOKIE】长：${val.length} 值：${val}`);
         (setCb || cb)?.(val);
-        cache$3.cookieSet.call(win.document, parse(val));
+        cache$4.cookieSet.call(win.document, parse(val));
       }
     });
   }
@@ -4922,7 +4945,7 @@ var sdenv = (function () {
     });
   }
 
-  let cache$2 = undefined;
+  let cache$3 = undefined;
 
   function DateAndRandom({ randomFixed, datas }) {
     sdenv.memory.sdWindow;
@@ -4936,7 +4959,7 @@ var sdenv = (function () {
       throw new Error('日期首位配置错误请检查');
     }
     this.runs = [];
-    Object.assign(this, cache$2);
+    Object.assign(this, cache$3);
   }
   DateAndRandom.prototype.shift = function (name) {
     const { firstMap } = this.data;
@@ -5011,8 +5034,8 @@ var sdenv = (function () {
   function dateAndRandomHandle(config = {}) {
     if (!config) return
     const win = sdenv.memory.sdWindow;
-    if (!cache$2) {
-      cache$2 = {
+    if (!cache$3) {
+      cache$3 = {
         _now: win.Date.now,
         _parse: win.Date.parse,
         _valueOf: win.Date.prototype.valueOf,
@@ -5029,6 +5052,42 @@ var sdenv = (function () {
     win.Math.random = dateAndRandom.wrapFun('random', randomReturn);
   }
 
+  const delay = (ms) => new Promise(resolve => sdenv.memory.sdWindow.setTimeout(resolve, ms));
+
+  let cache$2 = undefined;
+
+  function ovserverHandle(config = {}) {
+    if (!config) return
+    const win = sdenv.memory.sdWindow;
+    if (!cache$2) {
+      cache$2 = win.MutationObserver;
+    }
+    const { newLog, addLog, runLog, log, addCb, runCb, newCb, cb, filter = () => true } = config;
+    win.MutationObserver = sdenv.tools.setNativeFuncName(new Proxy(cache$2, {
+      construct: function (target, argArray, newTarget) {
+        const [func] = argArray;
+        const funcStr = func.param ? JSON.stringify(func.param) : sdenv.tools.compressText(func.toString());
+        if (newLog || log) win.console.log(`【NEW OVSERVER】方法：${funcStr}`);
+        (newCb || cb)?.(...argArray);
+        const result = Reflect.construct(target, [async (...params) => {
+          if (!filter || !filter(...argArray)) return;
+          if (runLog || log) win.console.log(`【RUN OVSERVER】方法：${funcStr}`);
+          (runCb || cb)?.(...params[0]);
+          await delay(0);
+          func(...params);
+        }], newTarget);
+        result.observe = new Proxy(result.observe, {
+          apply: function (target, thisArg, params) {
+            if (addLog || log) win.console.log(`【ADD OVSERVER】方法：${funcStr}`);
+            (addCb || cb)?.(...params);
+            return Reflect.apply(target, thisArg, params);
+          }
+        });
+        return result;
+      },
+    }), 'MutationObserver');
+  }
+
   let cache$1 = undefined;
 
   function intervalHandle(config = {}) {
@@ -5040,9 +5099,9 @@ var sdenv = (function () {
     const { log, cb, time, filter = () => true } = config;
     win.setInterval = sdenv.tools.setNativeFuncName(new Proxy(cache$1, {
       apply: function (target, thisArg, params) {
-        if (!filter(...params)) return;
+        if (!filter || !filter(...params)) return;
         const [func, timeout] = params;
-        const funcStr = sdenv.tools.compressText(func.toString());
+        const funcStr = func.param ? JSON.stringify(func.param) : sdenv.tools.compressText(func.toString());
         if (log) win.console.log(`【INTERVAL APPLY】增加setInterval事件，时间：${timeout}, 方法:${funcStr}`);
         if (time !== undefined) {
           if (typeof time !== 'number') throw new Error(`time配置如果存在值则必须是数字`);
@@ -5074,6 +5133,7 @@ var sdenv = (function () {
     getInterval: getInterval,
     getTimeout: getTimeout,
     intervalHandle: intervalHandle,
+    ovserverHandle: ovserverHandle,
     timeoutHandle: timeoutHandle
   });
 
@@ -5086,6 +5146,11 @@ var sdenv = (function () {
       sdDate: win.Date,
       sdMath: win.Math,
     });
+    if (sdenv.config.isNode) {
+      // 修改setFunc工具中的Function指向到window.Function
+      _setFuncInit();
+      Object.setPrototypeOf(win.window, win.Window.prototype);
+    }
   }
 
   let cache = undefined;

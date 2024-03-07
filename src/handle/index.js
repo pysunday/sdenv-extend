@@ -7,3 +7,4 @@ export * from './connectionHandle';
 export * from './intervalHandle';
 export * from './timeoutHandle';
 export * from './dateAndRandomHandle';
+export * from './ovserver';
