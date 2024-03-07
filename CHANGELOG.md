@@ -1,5 +1,12 @@
 
 
+## [1.1.0](https://github.com/pysunday/sdenv-extend/compare/1.0.0...1.1.0) (2024-03-07)
+
+
+### Features
+
+* 适配chrome的修改，如定时器、dom监控、循环监控等 ([c34e4c3](https://github.com/pysunday/sdenv-extend/commit/c34e4c3b0ef4637d31bbed65a58c21da3ebd3ccc))
+
 ## 1.0.0 (2024-02-26)
 
 
