@@ -6,8 +6,8 @@ const evalmap = {
   '!new function(){eval("this.a=1")}().a': 'false',
 }
 
-export function evalHandle(config = {}) {
-  if (!config) return
+export function evalHandle(config) {
+  if (typeof config !== 'object') config = {};
   const win = sdenv.memory.sdWindow;
   if (!cache) {
     cache = win.eval;

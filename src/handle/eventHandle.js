@@ -4,8 +4,8 @@ const delay = (ms) => new Promise(resolve => sdenv.memory.sdWindow.setTimeout(re
 
 let cache = undefined;
 
-export function eventHandle(config = {}) {
-  if (!config) return
+export function eventHandle(config) {
+  if (typeof config !== 'object') config = {};
   const win = sdenv.memory.sdWindow;
   if (!cache) {
     cache = win.addEventListener;

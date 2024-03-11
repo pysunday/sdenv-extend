@@ -15,7 +15,7 @@ const watcher = (globs) => ({
 
 const updateVersion = () => ({
   renderStart (outputOptions, inputOptions) {
-    outputOptions.footer = () => `sdenv.version = 'V${JSON.parse(fs.readFileSync('package.json', 'utf8')).version}'`
+    outputOptions.footer = () => `SdenvExtend.version = 'V${JSON.parse(fs.readFileSync('package.json', 'utf8')).version}'`
   }
 })
 
@@ -28,16 +28,21 @@ export default () => {
         file: `build/${fileName}-cjs.js`,
         strict: false,
         format: 'cjs',
-        // plugins: [terser(), updateVersion()]
-        // name: 'sdenv',
-        // format: 'iife',
+        plugins: [terser(), updateVersion()]
       },
       {
         file: `build/${fileName}-iife.js`,
         format: 'iife',
-        name: 'sdenv',
+        name: 'SdenvExtend',
         strict: false,
-        // plugins: [terser(), updateVersion()]
+        plugins: [updateVersion()]
+      },
+      {
+        file: `build/${fileName}-iife.min.js`,
+        format: 'iife',
+        name: 'SdenvExtend',
+        strict: false,
+        plugins: [terser(), updateVersion()]
       }
     ],
     plugins: [

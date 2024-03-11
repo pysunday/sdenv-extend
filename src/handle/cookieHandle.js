@@ -2,8 +2,8 @@ import { sdenv } from '../globalVarible';
 
 let cache = undefined;
 
-export function cookieHandle(config = {}) {
-  if (!config) return
+export function cookieHandle(config) {
+  if (typeof config !== 'object') config = {};
   const win = sdenv.memory.sdWindow;
   if (!cache) {
     cache = {

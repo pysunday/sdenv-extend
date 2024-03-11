@@ -40,7 +40,6 @@ const charging = {
 }
 
 export function batteryHandle(config) {
-  if (!config) return
   if (typeof config === 'string') {
     config = charging[config] || {};
   } else if (typeof config !== 'object') {

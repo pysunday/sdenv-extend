@@ -3,14 +3,9 @@ import { setNativeFuncName } from '../tools/setFunc';
 
 let cache = undefined;
 
-function DateAndRandom({ randomFixed, datas }) {
+function DateAndRandom({ datas }) {
   const win = sdenv.memory.sdWindow;
-  // 无感代理时间生成方法和随机数生成方法
-  if ((randomFixed || sdenv.config.randomFixed) && datas) {
-    this.data = datas;
-  } else {
-    this.data = {};
-  }
+  this.data = datas || {};
   if (this.data?.firstMap && Object.values(this.data.firstMap).some((it) => !it)) {
     throw new Error('日期首位配置错误请检查');
   }
@@ -87,8 +82,8 @@ DateAndRandom.prototype.getData = function (copy) {
   return ret;
 }
 
-export function dateAndRandomHandle(config = {}) {
-  if (!config) return
+export function dateAndRandomHandle(config) {
+  if (typeof config !== 'object') config = {};
   const win = sdenv.memory.sdWindow;
   if (!cache) {
     cache = {
@@ -102,6 +97,7 @@ export function dateAndRandomHandle(config = {}) {
   }
   const { randomReturn = sdenv.config.randomReturn } = config;
   const dateAndRandom = new DateAndRandom(config);
+  sdenv.tools.addUtil(dateAndRandom.getData.bind(dateAndRandom), 'getDateData');
   win.Date = dateAndRandom.wrapClass('newdate', win.Date);
   win.Date.now = dateAndRandom.wrapFun('now');
   win.Date.parse = dateAndRandom.wrapFun('parse');
