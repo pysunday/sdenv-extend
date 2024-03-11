@@ -1,5 +1,12 @@
 
 
+## [1.2.0](https://github.com/pysunday/sdenv-extend/compare/1.1.0...1.2.0) (2024-03-11)
+
+
+### Features
+
+* README更新、handle代码优化、打包逻辑优化 ([c4ad635](https://github.com/pysunday/sdenv-extend/commit/c4ad63546d3bc2410182205e61af3c1d35cbb685))
+
 ## [1.1.0](https://github.com/pysunday/sdenv-extend/compare/1.0.0...1.1.0) (2024-03-07)
 
 
