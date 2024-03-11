@@ -28,7 +28,6 @@ export default () => {
         file: `build/${fileName}-cjs.js`,
         strict: false,
         format: 'cjs',
-        plugins: [terser(), updateVersion()]
       },
       {
         file: `build/${fileName}-iife.js`,
