@@ -22,7 +22,7 @@ export const sdenv = {
     sdFunction: Function,
     sdDate: Date,
     sdMath: Math,
-    sdenvExtend: null, // node环境缓存sdenv-extend插件，用于浏览器环境使用
+    SdenvExtend: null, // node环境缓存sdenv-extend插件，用于浏览器环境使用
   },
   cache: {
     dynamicCode: [], // 缓存动态生成代码
