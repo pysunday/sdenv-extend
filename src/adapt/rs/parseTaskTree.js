@@ -19,14 +19,14 @@ function parse(val, keyMap = {}, deep = 0, deeps = [0]) {
   val[oneKey] = val[oneKey].map((it, idx) => {
     if (it) {
       parse(it, keyMap, deep + 1, [...deeps, 'one', idx]);
-      return sdenv.tools.monitor(it, it.idx, { setLog: true, ...monitor });
+      return sdenv.tools.monitor(it, it.idx, { setLog: false, ...monitor });
     }
     return it;
   });
   val[twoKey] = val[twoKey].map((it, idx) => {
     if (it) {
       parse(it, keyMap, deep + 1, [...deeps, 'two', idx]);
-      return sdenv.tools.monitor(it, it.idx, { setLog: true, ...monitor });
+      return sdenv.tools.monitor(it, it.idx, { setLog: false, ...monitor });
     }
     return it;
   })
