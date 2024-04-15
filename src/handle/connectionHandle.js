@@ -1,4 +1,3 @@
-import { sdenv } from '../globalVarible';
 import _get from 'lodash-es/get'
 
 /*
@@ -10,11 +9,11 @@ type：网络连接类型，有些浏览器有有些没有，如："bluetooth"(�
 */
 
 export function connectionHandle(config) {
-  const win = sdenv.memory.sdWindow;
+  const win = this.memory.sdWindow;
   if (typeof config !== 'object') {
     config = {};
   }
-  sdenv.tools.addConstants(win.navigator.connection, {
+  this.getTools('addConstants')(win.navigator.connection, {
     downlink: 6.66,
     effectiveType: "4g",
     onchange: null,

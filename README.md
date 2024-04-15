@@ -1,3 +1,5 @@
+[![NPM version](https://badge.fury.io/js/sdenv-extend.svg)](http://badge.fury.io/js/sdenv-extend)
+
 用于sdenv补环境框架与真实浏览器加载网页的公共方法与共有处理.
 
 ## node端

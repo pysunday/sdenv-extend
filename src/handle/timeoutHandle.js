@@ -1,19 +1,13 @@
-import { sdenv } from '../globalVarible';
-
-let cache = undefined;
-
 export function timeoutHandle(config) {
+  const self = this;
   if (typeof config !== 'object') config = {};
-  const win = sdenv.memory.sdWindow;
-  if (!cache) {
-    cache = win.setTimeout;
-  }
+  const win = this.memory.sdWindow;
   const { log, cb, time, filter = () => true } = config;
-  win.setTimeout = sdenv.tools.setNativeFuncName(new Proxy(cache, {
+  win.setTimeout = this.getTools('setNativeFuncName')(new Proxy(win.setTimeout, {
     apply: function (target, thisArg, params) {
       if (!filter || !filter(...params)) return;
       const [func, timeout] = params;
-      const funcStr = func.param ? JSON.stringify(func.param) : sdenv.tools.compressText(func.toString());
+      const funcStr = func.param ? JSON.stringify(func.param) : self.getTools('compressText')(func.toString());
       if (log) win.console.log(`【TIMEOUT APPLY】增加setTimeout事件，时间：${timeout}, 方法: ${funcStr}`);
       if (time !== undefined) {
         if (typeof time !== 'number') throw new Error(`time配置如果存在值则必须是数字`);
@@ -26,7 +20,7 @@ export function timeoutHandle(config) {
           time || timeout,
         ]);
       }
-      return sdenv.tools.addTimeout(func, timeout);
+      return self.getTools('addTimeout')(func, timeout);
     },
   }), 'setTimeout');
   win.document.addEventListener('readystatechange', function() {
@@ -35,5 +29,3 @@ export function timeoutHandle(config) {
 }
 
 export default timeoutHandle;
-
-export const getTimeout = () => cache;

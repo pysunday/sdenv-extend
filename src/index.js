@@ -1,71 +1,80 @@
 import _merge from 'lodash-es/merge';
-import { sdenv } from './globalVarible';
+import { gv } from './globalVarible';
 import { loopRunInit } from './utils/index';
 import * as tools from './tools/index';
 import * as adapt from './adapt/index'
-import handleInit from './handle/init';
 import * as handles from './handle/index';
 
-function setWindow(win) {
-  if (!win) return;
-  Object.assign(sdenv.memory, {
-    sdWindow: win,
-    sdEval: win.eval,
-    sdFunction: win.Function,
-    sdDate: win.Date,
-    sdMath: win.Math,
-  });
-  if (sdenv.config.isNode) {
-    // 修改setFunc工具中的Function指向到window.Function
-    tools._setFuncInit();
-    Object.setPrototypeOf(win.window, win.Window.prototype);
-  }
-}
-
-let cache = undefined;
 
 export default class {
   constructor(config, win = undefined) {
-    const obj = win ? win.Object : Object;
-    if (!cache) cache = obj;
-    if (!obj.sdenv) {
-      _merge(sdenv, config || {});
-      obj.prototype.sdenv = () => sdenv;
-      setWindow(win);
-      _merge(sdenv.tools, tools);
-      _merge(sdenv.adapt, adapt); // 会用到前面tools的方法
-      loopRunInit();
-    }
-    Object.assign(this, obj.sdenv());
+    const self = this;
+    Object.assign(this, _merge(
+      {},
+      gv,
+      config || {},
+      {
+        tools,
+        adapt,
+      }
+    ));
+    this.setWindow(win);
+    loopRunInit.call(this);
+    this.bindThis();
   }
 
-  static sdenv() {
-    if (cache) return cache.sdenv();
-    console.error('sdenv还未被初始化!');
+  bindThis() {
+    const that = this;
+    function addBind(obj) {
+      Object.entries(obj).forEach(([key, fun]) => {
+        if (typeof fun !== 'function') {
+          addBind(fun)
+        } else {
+          obj[key] = fun.bind(that);
+        }
+      })
+    }
+    ['tools', 'adapt'].forEach(it => {
+      addBind(this[it]);
+    });
+  }
+
+  setWindow(win) {
+    if (!win) return;
+    Object.assign(this.memory, {
+      sdWindow: win,
+      sdEval: win.eval,
+      sdFunction: win.Function,
+      sdDate: win.Date,
+      sdMath: win.Math,
+    });
+    if (this.config.isNode) {
+      // 修改setFunc工具中的Function指向到window.Function
+      // tools._setFuncInit();
+      Object.setPrototypeOf(win.window, win.Window.prototype);
+    }
   }
 
   getHandle(name) {
     const handleName = `${name}Handle`;
     if (!handles[handleName]) return;
     return (...params) => {
-      handles[handleName](...params);
+      handles[handleName].call(this, ...params);
       return this;
     }
   }
 
   getTools(name) {
-    if (!sdenv.tools[name]) return;
+    if (!tools[name]) return;
     return (...params) => {
-      sdenv.tools[name](...params);
-      return this;
+      return tools[name].call(this, ...params);
     }
   }
 
   getUtils(name) {
-    if (!sdenv.utils[name]) return;
+    if (!utils[name]) return;
     return (...params) => {
-      sdenv.utils[name](...params);
-      return this;
+      return utils[name].call(this, ...params);
     }
   }
 }

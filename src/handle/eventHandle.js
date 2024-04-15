@@ -1,21 +1,14 @@
-import { sdenv } from '../globalVarible';
-
-const delay = (ms) => new Promise(resolve => sdenv.memory.sdWindow.setTimeout(resolve, ms))
-
-let cache = undefined;
-
 export function eventHandle(config) {
+  const self = this;
+  const win = this.memory.sdWindow;
+  const delay = (ms) => new Promise(resolve => win.setTimeout(resolve, ms))
   if (typeof config !== 'object') config = {};
-  const win = sdenv.memory.sdWindow;
-  if (!cache) {
-    cache = win.addEventListener;
-  }
   const { addLog, runLog, log, addCb, runCb, cb, filter = () => true } = config;
-  win.addEventListener = sdenv.tools.setNativeFuncName(new Proxy(cache, {
+  win.addEventListener = this.getTools('setNativeFuncName')(new Proxy(win.addEventListener, {
     apply: function (target, thisArg, params) {
       if (!filter || !filter(...params)) return;
       const [type, callback] = params;
-      const funcStr = callback.param ? JSON.stringify(callback.param) : sdenv.tools.compressText(callback.toString());
+      const funcStr = callback.param ? JSON.stringify(callback.param) : self.getTools('compressText')(callback.toString());
       if (addLog || log) win.console.log(`【ADD EVENT】事件名：${type}, 方法：${funcStr}`);
       (addCb || cb)?.(...params);
       return Reflect.apply(target, thisArg, [

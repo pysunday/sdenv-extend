@@ -1,4 +1,4 @@
-export const sdenv = {
+export const gv = {
   adapt: {}, // 适配专用网站方法
   tools: {}, // 内部工具
   utils: {}, // 外部方法

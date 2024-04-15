@@ -1,15 +1,9 @@
-import { sdenv } from '../globalVarible';
-
-let cache = undefined;
-
 export function funcHandle(config) {
+  const self = this;
   if (typeof config !== 'object') config = {};
-  const win = sdenv.memory.sdWindow;
-  if (!cache) {
-    cache = win.Function;
-  }
+  const win = this.memory.sdWindow;
   const { log, cb } = config;
-  win.Function = sdenv.tools.setNativeFuncName(new Proxy(cache, {
+  win.Function = this.getTools('setNativeFuncName')(new Proxy(win.Function, {
     apply(target, thisArg, params) {
       const new_params = params.map((param) => {
         if (param.includes('debugger')) {
@@ -20,19 +14,19 @@ export function funcHandle(config) {
         }
         return param
       });
-      if (log) win.console.log(`【FUNCTION APPLY】参数：${params.map(it => sdenv.tools.compressText(JSON.stringify(it)))}`);
+      if (log) win.console.log(`【FUNCTION APPLY】参数：${params.map(it => self.getTools('compressText')(JSON.stringify(it)))}`);
       const dynamicCode = {
         type: 'Function',
         params,
         tar_params: new_params,
       }
       cb?.(dynamicCode);
-      sdenv.cache.dynamicCode.push({ ...dynamicCode });
+      self.cache.dynamicCode.push({ ...dynamicCode });
       return Reflect.apply(target, thisArg, new_params);
     }
   }), 'Function');
   win.Function.prototype.constructor = win.Function;
-  sdenv.tools.setNativeFuncName(win.Function.prototype, '');
+  this.getTools('setNativeFuncName')(win.Function.prototype, '');
 }
 
 export default funcHandle;

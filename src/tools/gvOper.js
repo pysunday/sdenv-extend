@@ -1,10 +1,9 @@
-import { sdenv } from '../globalVarible';
-
 export function addUtil(func, name) {
-  sdenv.utils[name || func.name] = func;
+  if (!func) debugger;
+  this.utils[name || func.name] = func.bind(this);
   return func;
 }
 
 export function getUtil(name) {
-  return sdenv.utils[name];
+  return this.utils[name];
 }

@@ -1,11 +1,10 @@
 // 修改任务树增加任务名称等信息
-import { sdenv } from '../../globalVarible';
-
-function parse(val, keyMap = {}, deep = 0, deeps = [0]) {
+function parse(val, keyMap = {}, deep = 0, deeps = [0], parent = null) {
   // 任务列表、主要子树、次要子树、监控值变化的配置
   if (keyMap._count === undefined) keyMap._count = 0;
   const { taskKey, oneKey, twoKey, monitor = {} } = keyMap;
   const str = val[taskKey];
+  val.parent = parent;
   val.str = str;
   val.val = {};
   if (!str) {
@@ -18,15 +17,15 @@ function parse(val, keyMap = {}, deep = 0, deeps = [0]) {
   val.idx = `${deeps.join('>')}-${keyMap._count++}`;
   val[oneKey] = val[oneKey].map((it, idx) => {
     if (it) {
-      parse(it, keyMap, deep + 1, [...deeps, 'one', idx]);
-      return sdenv.tools.monitor(it, it.idx, { setLog: false, ...monitor });
+      parse.call(this, it, keyMap, deep + 1, [...deeps, 'one', idx], val);
+      return this.getTools('monitor')(it, it.idx, { setLog: false, ...monitor });
     }
     return it;
   });
   val[twoKey] = val[twoKey].map((it, idx) => {
     if (it) {
-      parse(it, keyMap, deep + 1, [...deeps, 'two', idx]);
-      return sdenv.tools.monitor(it, it.idx, { setLog: false, ...monitor });
+      parse.call(this, it, keyMap, deep + 1, [...deeps, 'two', idx], val);
+      return this.getTools('monitor')(it, it.idx, { setLog: false, ...monitor });
     }
     return it;
   })
@@ -34,6 +33,6 @@ function parse(val, keyMap = {}, deep = 0, deeps = [0]) {
 }
 
 export const parseTaskTree = function(...params) {
-  sdenv.cache.runsObj = parse(...params); // 任务树
-  sdenv.cache.runsArr = []; // 任务运行时队列
+  this.cache.runsObj = parse.call(this, ...params); // 任务树
+  this.cache.runsArr = []; // 任务运行时队列
 }

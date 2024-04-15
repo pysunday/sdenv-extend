@@ -1,20 +1,18 @@
-import { sdenv } from '../globalVarible';
-
-const delay = (ms) => new Promise(resolve => sdenv.memory.sdWindow.setTimeout(resolve, ms))
-
 let cache = undefined;
 
 export function ovserverHandle(config) {
+  const self = this;
   if (typeof config !== 'object') config = {};
-  const win = sdenv.memory.sdWindow;
+  const win = this.memory.sdWindow;
+  const delay = (ms) => new Promise(resolve => win.setTimeout(resolve, ms))
   if (!cache) {
     cache = win.MutationObserver;
   }
   const { newLog, addLog, runLog, log, addCb, runCb, newCb, cb, filter = () => true } = config;
-  win.MutationObserver = sdenv.tools.setNativeFuncName(new Proxy(cache, {
+  win.MutationObserver = this.getTools('setNativeFuncName')(new Proxy(cache, {
     construct: function (target, argArray, newTarget) {
       const [func] = argArray;
-      const funcStr = func.param ? JSON.stringify(func.param) : sdenv.tools.compressText(func.toString());
+      const funcStr = func.param ? JSON.stringify(func.param) : self.getTools('compressText')(func.toString());
       if (newLog || log) win.console.log(`【NEW OVSERVER】方法：${funcStr}`);
       (newCb || cb)?.(...argArray);
       const result = Reflect.construct(target, [async (...params) => {

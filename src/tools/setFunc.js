@@ -1,12 +1,10 @@
-import { sdenv } from '../globalVarible';
-
 let originToString = Function.toString;
 const canToStrigArr = [];
 const toString = function() {
   if (canToStrigArr.includes(this.name)) {
     return `function ${this.name || ''}() { [native code] }`;
   }
-  return originToString.apply(this);
+  return originToString.call(this);
 }
 
 export const setFuncNative = function(func, name) {
@@ -43,7 +41,7 @@ setNativeFuncName(toString, 'toString');
 
 export const _setFuncInit = function() {
   // 修改Function指向与toString原型链指向
-  const win = sdenv.memory.sdWindow;
+  const win = this.memory.sdWindow;
   originToString = win.Function.toString;
   toString.__proto__ = win.Function.prototype;
 }

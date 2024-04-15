@@ -1,6 +1,4 @@
-import { sdenv } from '../globalVarible';
 import { isDied, isAlive } from './runtime';
-import { getTimeout } from '../handle/timeoutHandle';
 
 const currentTask = function () {
   this.cache = null;
@@ -24,7 +22,8 @@ const currentTask = function () {
 }
 
 class Timeout {
-  constructor() {
+  constructor(sdenv) {
+    this.sdenv = sdenv;
     this.index = [];
     this.timeouts = {};
     this.lastOp = sdenv.memory.runinfo.start;
@@ -34,6 +33,7 @@ class Timeout {
   }
 
   addTimeout(func, time, type = 'timeout', idx = this.index.length) {
+    const { sdenv } = this;
     let timekey = new sdenv.memory.sdDate().getTime() - sdenv.memory.runinfo.start + time;
     const obj = {
       func, // 方法
@@ -94,13 +94,14 @@ class Timeout {
   exec() {
     if (this.isLock) return;
     this.isLock = true;
-    getTimeout()(() => {
+    this.sdenv.memory.sdWindow.setTimeout(() => {
       this.isLock = false;
       this.run();
     }, 0);
   }
 
   run() {
+    const { sdenv } = this;
     const win = sdenv.memory.sdWindow;
     const times = Object.keys(this.timeouts).filter((key) => {
       if (Number(key) + sdenv.memory.runinfo.start <= this.lastOp) return false;
@@ -138,20 +139,28 @@ class Timeout {
   }
 }
 
-sdenv.memory.timeout = new Timeout();
+function check() {
+  if (!this.memory.timeout) {
+    this.memory.timeout = new Timeout(this);
+  }
+}
 
 export const addTimeout = function(func, time) {
-  return sdenv.memory.timeout.addTimeout(func, Number(time || 0), 'timeout')
+  check.call(this);
+  return this.memory.timeout.addTimeout(func, Number(time || 0), 'timeout')
 }
 
 export const addInterval = function(func, time) {
-  return sdenv.memory.timeout.addInterval(func, time);
+  check.call(this);
+  return this.memory.timeout.addInterval(func, time);
 }
 
 export const removeTimeout = function(idx) {
-  return sdenv.memory.timeout.remove(idx);
+  check.call(this);
+  return this.memory.timeout.remove(idx);
 }
 
 export const removeInterval = function(idx) {
-  return sdenv.memory.timeout.remove(idx);
+  check.call(this);
+  return this.memory.timeout.remove(idx);
 }

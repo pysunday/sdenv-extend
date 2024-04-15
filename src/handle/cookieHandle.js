@@ -1,16 +1,8 @@
-import { sdenv } from '../globalVarible';
-
-let cache = undefined;
-
 export function cookieHandle(config) {
   if (typeof config !== 'object') config = {};
-  const win = sdenv.memory.sdWindow;
-  if (!cache) {
-    cache = {
-      cookieGet: Object.getOwnPropertyDescriptor(win.Document.prototype, 'cookie').get,
-      cookieSet: Object.getOwnPropertyDescriptor(win.Document.prototype, 'cookie').set,
-    }
-  }
+  const win = this.memory.sdWindow;
+  const cookieGet = Object.getOwnPropertyDescriptor(win.Document.prototype, 'cookie').get;
+  const cookieSet = Object.getOwnPropertyDescriptor(win.Document.prototype, 'cookie').set;
   const {
     getLog, // 开启get日志
     setLog, // 开启set日志
@@ -24,7 +16,7 @@ export function cookieHandle(config) {
     configurable: false,
     enumerable: false,
     get() {
-      const cookie = cache.cookieGet.call(win.document);
+      const cookie = cookieGet.call(win.document);
       if (getLog || log) win.console.log(`【GET COOKIE】长：${cookie.length} 值：${cookie}`);
       (getCb || cb)?.(cookie);
       return cookie;
@@ -32,7 +24,7 @@ export function cookieHandle(config) {
     set(val) {
       if (setLog || log) win.console.log(`【SET COOKIE】长：${val.length} 值：${val}`);
       (setCb || cb)?.(val);
-      cache.cookieSet.call(win.document, parse(val));
+      cookieSet.call(win.document, parse(val));
     }
   })
 }

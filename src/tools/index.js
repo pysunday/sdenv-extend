@@ -5,7 +5,6 @@ export * from './exit';
 export * from './getNativeProto';
 export * from './gvOper';
 export * from './monitor';
-export * from './proxy';
 export * from './runtime';
 export * from './setFunc';
 export * from './setObj';

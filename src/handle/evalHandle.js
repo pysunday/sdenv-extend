@@ -1,21 +1,15 @@
-import { sdenv } from '../globalVarible';
-
-let cache = undefined;
-
 const evalmap = {
   '!new function(){eval("this.a=1")}().a': 'false',
 }
 
 export function evalHandle(config) {
   if (typeof config !== 'object') config = {};
-  const win = sdenv.memory.sdWindow;
-  if (!cache) {
-    cache = win.eval;
-  }
+  const win = this.memory.sdWindow;
   const { cb, log } = config;
-  win.eval = sdenv.tools.setNativeFuncName(new Proxy(cache, {
+  const self = this;
+  win.eval = this.getTools('setNativeFuncName')(new Proxy(win.eval, {
     apply(target, thisArg, params) {
-      if (log) win.console.log(`【EVAL APPLY】参数：${params.map(it => sdenv.tools.compressText(JSON.stringify(it)))}`);
+      if (log) win.console.log(`【EVAL APPLY】参数：${params.map(it => self.getTools('compressText')(JSON.stringify(it)))}`);
       const new_params = params.map((param) => {
         if (typeof evalmap[param] === 'string') return evalmap[param];
         if (param.includes('debugger')) {
@@ -32,7 +26,7 @@ export function evalHandle(config) {
         tar_params: new_params,
       }
       cb?.(dynamicCode);
-      sdenv.cache.dynamicCode.push({ ...dynamicCode });
+      self.cache.dynamicCode.push({ ...dynamicCode });
       return Reflect.apply(target, thisArg, new_params);
     },
   }), 'eval');

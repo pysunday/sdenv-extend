@@ -1,16 +1,14 @@
-import { sdenv } from '../globalVarible';
-
-export const isAlive = () => {
+export function isAlive() {
   // 窗口是否还活跃
-  return !sdenv.memory.runinfo.isDied;
+  return !this.memory.runinfo.isDied;
 }
 
-export const isDied = () => {
+export function isDied() {
   // 窗口是否还活跃
-  return sdenv.memory.runinfo.isDied;
+  return this.memory.runinfo.isDied;
 }
 
-export const setDied = () => {
+export function setDied() {
   // 设置窗口为死亡状态
-  sdenv.memory.runinfo.isDied = true;
+  this.memory.runinfo.isDied = true;
 }

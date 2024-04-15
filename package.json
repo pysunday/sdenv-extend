@@ -28,6 +28,12 @@
   "publishConfig": {
     "registry": "https://registry.npmjs.org/"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pysunday/sdenv-extend"
+  },
+  "homepage": "https://github.com/pysunday/sdenv-extend#readme",
+  "bugs": "https://github.com/pysunday/sdenv-extend/issues",
   "author": "pysunday",
   "license": "ISC",
   "devDependencies": {

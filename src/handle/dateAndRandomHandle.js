@@ -1,16 +1,22 @@
-import { sdenv } from '../globalVarible';
-import { setNativeFuncName } from '../tools/setFunc';
-
-let cache = undefined;
-
-function DateAndRandom({ datas }) {
+function DateAndRandom(sdenv, { datas }) {
   const win = sdenv.memory.sdWindow;
+  this.sdenv = sdenv;
+  if (datas && Array.isArray(datas._newdate) && Array.isArray(datas._newdate[0])) {
+    datas._newdate = datas._newdate.reduce((ans, [val, num]) => ([...ans, ...new Array(num).fill(val)]), []);
+  }
   this.data = datas || {};
   if (this.data?.firstMap && Object.values(this.data.firstMap).some((it) => !it)) {
     throw new Error('日期首位配置错误请检查');
   }
   this.runs = [];
-  Object.assign(this, cache);
+  Object.assign(this, {
+    _now: win.Date.now,
+    _parse: win.Date.parse,
+    _valueOf: win.Date.prototype.valueOf,
+    _getTime: win.Date.prototype.getTime,
+    _toString: win.Date.prototype.toString,
+    _random: win.Math.random,
+  });
 }
 DateAndRandom.prototype.shift = function (name) {
   const { firstMap } = this.data;
@@ -26,7 +32,7 @@ DateAndRandom.prototype.wrapFun = function (funcName, def) {
   if (!this[name]) return undefined;
   if (def === undefined && !Array.isArray(this.data[name])) this.data[name] = [];
   const self = this;
-  return setNativeFuncName(function() {
+  return this.sdenv.getTools('setNativeFuncName')(function() {
     if (def !== undefined) return def;
     if (self.data.firstMap?.[name]) {
       if (!self.data[name].length) {
@@ -40,11 +46,11 @@ DateAndRandom.prototype.wrapFun = function (funcName, def) {
   }, funcName);
 }
 DateAndRandom.prototype.wrapClass = function (className, cla) {
-  const win = sdenv.memory.sdWindow;
+  const win = this.sdenv.memory.sdWindow;
   const name = `_${className}`;
   if (!Array.isArray(this.data[name])) this.data[name] = [];
   const self = this;
-  return setNativeFuncName(new Proxy(cla, {
+  return this.sdenv.getTools('setNativeFuncName')(new Proxy(cla, {
     construct(target, argumentsList, newTarget) {
       if (self.data.firstMap?.[name]) {
         if (!self.data[name].length) {
@@ -72,7 +78,18 @@ DateAndRandom.prototype.getData = function (copy) {
     }
     const first = val[0];
     ans.firstMap[key] = first;
-    ans[key] = val.map((it) => it - first);
+    if (key === '_newdate') {
+      ans[key] = val.map((it) => it - first).reduce((arr, each) => {
+        if (arr.length === 0 || arr[arr.length - 1][0] !== each) {
+          arr.push([each, 1]);
+        } else {
+          arr[arr.length - 1][1] += 1;
+        }
+        return arr;
+      }, []);
+    } else {
+      ans[key] = val.map((it) => it - first);
+    }
     return ans;
   }, { firstMap: {} });
   if (copy) {
@@ -84,20 +101,10 @@ DateAndRandom.prototype.getData = function (copy) {
 
 export function dateAndRandomHandle(config) {
   if (typeof config !== 'object') config = {};
-  const win = sdenv.memory.sdWindow;
-  if (!cache) {
-    cache = {
-      _now: win.Date.now,
-      _parse: win.Date.parse,
-      _valueOf: win.Date.prototype.valueOf,
-      _getTime: win.Date.prototype.getTime,
-      _toString: win.Date.prototype.toString,
-      _random: win.Math.random,
-    }
-  }
-  const { randomReturn = sdenv.config.randomReturn } = config;
-  const dateAndRandom = new DateAndRandom(config);
-  sdenv.tools.addUtil(dateAndRandom.getData.bind(dateAndRandom), 'getDateData');
+  const win = this.memory.sdWindow;
+  const { randomReturn = this.config.randomReturn } = config;
+  const dateAndRandom = new DateAndRandom(this, config);
+  this.getTools('addUtil')(dateAndRandom.getData.bind(dateAndRandom), 'getDateData');
   win.Date = dateAndRandom.wrapClass('newdate', win.Date);
   win.Date.now = dateAndRandom.wrapFun('now');
   win.Date.parse = dateAndRandom.wrapFun('parse');

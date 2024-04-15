@@ -1,4 +1,3 @@
-import { sdenv } from '../globalVarible';
 import _round from 'lodash-es/round'
 
 /*
@@ -45,8 +44,8 @@ export function batteryHandle(config) {
   } else if (typeof config !== 'object') {
     config = {};
   }
-  const win = sdenv.memory.sdWindow;
-  win.navigator.getBattery = sdenv.tools.setNativeFuncName(() => {
+  const win = this.memory.sdWindow;
+  win.navigator.getBattery = this.getTools('setNativeFuncName')(() => {
     return new Promise((resolve, reject) => {
       resolve({
         onchargingchange: null,

@@ -1,8 +1,8 @@
 /* eslint-disable no-debugger */
-import { sdenv } from '../globalVarible';
 
 export function monitor(tar, name, config = {}) {
-  const win = sdenv.memory.sdWindow;
+  const win = this.memory.sdWindow;
+  const tools = this.tools;
   const {
     getLog, // 开启get日志
     setLog, // 开启set日志
@@ -14,7 +14,8 @@ export function monitor(tar, name, config = {}) {
     cb, // 回调，设置的debugger更友好
     parse = (key, val) => val,
   } = config;
-  if (!sdenv.cache.monitor[name]) sdenv.cache.monitor[name] = [];
+  if (!this.cache.monitor[name]) this.cache.monitor[name] = [];
+  tar.sdMonitorName = name;
   const newTar = new win.Proxy(tar, {
     get(target, property, receiver) {
       if (getLog) win.console.log(`${name} Getting ${property}`);
@@ -28,24 +29,26 @@ export function monitor(tar, name, config = {}) {
         win.Math,
         win.navigation
       ].includes(value) && value.toString ? value.toString() : value
-      if (setLog) win.console.log(`${name} Setting ${property} to ${show}`);
+      if (setLog && !(Array.isArray(target) && property === 'length')) {
+        win.console.log(`${name} Setting ${property} to ${tools.compressText(show)}`);
+      }
       if (setKeys.includes(property) || keys.includes(property)) debugger;
       (setCb || cb)?.(property, value, name);
       return Reflect.set(target, property, parse(property, value), receiver);
     }
   });
-  sdenv.cache.monitor[name].push(newTar);
+  this.cache.monitor[name].push(newTar);
   return newTar;
 }
 
 export function monitorFunction(tar, name, config = {}) {
-  const win = sdenv.memory.sdWindow;
+  const win = this.memory.sdWindow;
   const {
     log, // 开启日志
     isDebugger, // 是否在调用时触发debugger
     cb, // 回调，设置的debugger更友好
   } = config;
-  if (!sdenv.cache.monitor[name]) sdenv.cache.monitor[name] = [];
+  if (!this.cache.monitor[name]) this.cache.monitor[name] = [];
   const newTar = new win.Proxy(tar, {
     apply(target, thisArg, argArray) {
       const result = Reflect.apply(target, thisArg, argArray);
@@ -55,11 +58,11 @@ export function monitorFunction(tar, name, config = {}) {
       return result;
     }
   });
-  sdenv.cache.monitor[name].push(newTar);
+  this.cache.monitor[name].push(newTar);
   return newTar;
 }
 
 export function getMonitor(name) {
-  if (name) return sdenv.cache.monitor[name];
-  return sdenv.cache.monitor
+  if (name) return this.cache.monitor[name];
+  return this.cache.monitor
 }

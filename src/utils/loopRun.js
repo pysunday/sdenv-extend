@@ -1,11 +1,10 @@
 // 循环体执行监控
 import _orderBy from 'lodash-es/orderBy';
-import { sdenv } from '../globalVarible';
-import { addUtil } from '../tools/index';
-
-const preLoop = {};
 
 export function loopRunInit() {
+  const sdenv = this;
+  const addUtil = sdenv.getTools('addUtil');
+  const preLoop = {};
   const win = sdenv.memory.sdWindow;
   const runloop = sdenv.cache.runloop = { current: 1 };
 
@@ -56,6 +55,11 @@ export function loopRunInit() {
           num: arr.length,
           loop: loopobj,
         });
+        return (...args) => {
+          if (log) {
+            console.log([`(${current}，${arr.length})`, ...args.map(it => sdenv.tools.compressText(it, 200))].join(' ==== '));
+          }
+        }
       },
       curLoop: () => arr.length,
       current,
@@ -68,6 +72,12 @@ export function loopRunInit() {
 
   // 上一个循环的信息
   addUtil(() => ({ ...preLoop }), 'getPreLoop');
+
+  addUtil(() => log, 'getLogLoop');
+
+  addUtil(() => log = false, 'closeLogLoop');
+
+  addUtil(() => log = true, 'openLogLoop');
 
   addUtil((copy) => {
     // 返回循环体运行数据，copy为复制方法，非浏览器环境需要手动传入
