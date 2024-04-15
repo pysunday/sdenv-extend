@@ -6,25 +6,21 @@
 
 1. 安装包：`npm install sdenv-extend`
 2. 导入：`const SdenvExtend = require('sdenv-extend')`
-3. 初始化(需要传入window对象)：`new SdenvExtend(cfg, window)`
-4. 需要注意在调试开发的时候为了保证浏览器端与node端运行一致，一般会将添加拓展放在html页面的script标签内执行，而此时应该使用node端的sdenv而不是浏览器端的sdenv，因此在初始化的时候需要将node端的包进行缓存即：`new SdenvExtend({ memory: { SdenvExtend } }, window);`
-5. 初始化完成后在node端既可以通过`require('sdenv-extend').sdenv()`取到唯一的sdenv对象，然后就可以使用该对象下面的tools和utils内的方法了
+3. 初始化(需要传入window对象)：`window.sdenv = new SdenvExtend({ }, window)`
 
 ## 浏览器端
 
 打包文件下载：`https://github.com/pysunday/sdenv-extend/releases`，文件名为sdenv-extend-iife的js文件即为浏览器端使用文件。
 
 1. head内引入：`<script type="text/javascript" charset="utf-8" src="/path/to/sdenv-extend-iife.js"></script>`
-2. 初始化：`new SdenvExtend(cfg)`，初始化后会存在方法`Object.sdenv`用于获取sdenv对象
+2. 初始化：`window.sdenv = new SdenvExtend(cfg)`
 3. html页面中使用：
 ```javascript
-const SdenvExtend = Object.sdenv().memory.SdenvExtend || SdenvExtend;
-const sdenv = new SdenvExtend();
+if (!window.sdenv) window.sdenv = new SdenvExtend();
 ```
 4. 使用extend handle拓展方法，应该在网页第一处javascript执行前后添加，即执行html中javascript代码前的最后一处node执行处或者就在该javascript代码内，建议是在html中的第一处javascript代码内使用，如：
 ```javascript
-const SdenvExtend = Object.sdenv().memory.SdenvExtend || SdenvExtend;
-new SdenvExtend()
+sdenv
   .getHandle('battery')('charging_success')
   .getHandle('eval')()
   ...
@@ -143,7 +139,7 @@ params:
   * object -> datas(object)：指定上下文获取的运行时日期数据
   * object -> randomReturn(number)：Math.random方法返回的数值
 
-其中datas的值为指定上下文运行时的产物，可以在浏览器端运行时在断点的位置执行`Object.sdenv().utils.getDateData(copy)`获取
+其中datas的值为指定上下文运行时的产物，可以在浏览器端运行时在断点的位置执行`sdenv.utils.getDateData(copy)`获取
 
 ### tools工具方法
 
