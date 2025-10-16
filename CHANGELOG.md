@@ -1,5 +1,12 @@
 
 
+## [1.4.0](https://github.com/pysunday/sdenv-extend/compare/1.3.0...1.4.0) (2025-10-16)
+
+
+### Features
+
+* 增加indexedDB和requestFileSystem监控 ([6b841d5](https://github.com/pysunday/sdenv-extend/commit/6b841d5bc4c911152a1fc648ff59db5eb63fb2cb))
+
 ## [1.3.0](https://github.com/pysunday/sdenv-extend/compare/1.2.0...1.3.0) (2024-04-15)
 
 
