@@ -8,7 +8,7 @@ export function ovserverHandle(config) {
   if (!cache) {
     cache = win.MutationObserver;
   }
-  const { newLog, addLog, runLog, log, addCb, runCb, newCb, cb, filter = () => true } = config;
+  const { ignore, newLog, addLog, runLog, log, addCb, runCb, newCb, cb, filter = () => true } = config;
   win.MutationObserver = this.getTools('setNativeFuncName')(new Proxy(cache, {
     construct: function (target, argArray, newTarget) {
       const [func] = argArray;
@@ -19,6 +19,7 @@ export function ovserverHandle(config) {
         if (!filter || !filter(...argArray)) return;
         if (runLog || log) win.console.log(`【RUN OVSERVER】方法：${funcStr}`);
         (runCb || cb)?.(...params[0]);
+        if (ignore) return;
         await delay(0);
         func(...params);
       }], newTarget);

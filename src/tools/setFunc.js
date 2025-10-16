@@ -7,10 +7,12 @@ const toString = function() {
   return originToString.call(this);
 }
 
-export const setFuncNative = function(func, name) {
+export const setFuncNative = function(func, name, len) {
   // 修改函数的toString方法返回native code标识
   if (!func) return undefined;
-  func.name = name || func.name || '';
+  if (typeof name === 'string') Object.defineProperty(func, 'name', { value: name });
+  else if (typeof name === 'number') len = name;
+  if (typeof len === 'number') Object.defineProperty(func, 'length', { value: len });
   canToStrigArr.push(func.name);
   Object.defineProperty(func, 'toString', {
     enumerable: false,
@@ -32,9 +34,9 @@ export const setFuncName = function(func, name) {
   return func;
 }
 
-export const setNativeFuncName = function(func, name) {
+export const setNativeFuncName = function(func, name, len) {
   setFuncName(func, name);
-  setFuncNative(func, name);
+  setFuncNative(func, name, len);
   return func;
 }
 setNativeFuncName(toString, 'toString');

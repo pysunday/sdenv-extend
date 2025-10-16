@@ -39,6 +39,8 @@ export const gv = {
     runsObj: [], // 缓存循环递归树
     runtime: {}, // 存放运行时数据的代理
     monitor: {}, // 监控变量对象
+    timeoutIdx: 0, // timeout编号，初始化时值递增
+    intervalIdx: 0, // interval编号，初始化时值递增
   }, // 存储缓存数据
   datas: {
     dateAndRandom: {}, // 随机数相关数据

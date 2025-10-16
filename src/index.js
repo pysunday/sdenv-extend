@@ -48,7 +48,7 @@ export default class {
       sdDate: win.Date,
       sdMath: win.Math,
     });
-    if (this.config.isNode) {
+    if (this.config.isNode && win.Window) {
       // 修改setFunc工具中的Function指向到window.Function
       // tools._setFuncInit();
       Object.setPrototypeOf(win.window, win.Window.prototype);

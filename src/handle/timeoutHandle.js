@@ -5,6 +5,7 @@ export function timeoutHandle(config) {
   const { log, cb, time, filter = () => true } = config;
   win.setTimeout = this.getTools('setNativeFuncName')(new Proxy(win.setTimeout, {
     apply: function (target, thisArg, params) {
+      const timeoutIdx = self.cache.timeoutIdx = self.cache.timeoutIdx + 1;
       if (!filter || !filter(...params)) return;
       const [func, timeout] = params;
       const funcStr = func.param ? JSON.stringify(func.param) : self.getTools('compressText')(func.toString());
@@ -14,8 +15,10 @@ export function timeoutHandle(config) {
         return Reflect.apply(target, thisArg, [
           () => {
             if (log) win.console.log(`【TIMEOUT RUN】setTimeout执行，时间：${timeout}，方法：${funcStr}`);
+            if (cb) cb('run_before', timeoutIdx);
             func()
             if (log) win.console.log(`【TIMEOUT RUNED】setTimeout执行，时间：${timeout}，方法：${funcStr}`);
+            if (cb) cb('run_after', timeoutIdx);
           },
           time || timeout,
         ]);

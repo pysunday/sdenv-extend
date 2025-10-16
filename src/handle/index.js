@@ -8,3 +8,5 @@ export * from './intervalHandle';
 export * from './timeoutHandle';
 export * from './dateAndRandomHandle';
 export * from './ovserver';
+export * from './requestFileSystem.js';
+export * from './indexedDB.js';
