@@ -27,7 +27,8 @@ const getKeyname = (val, keyMap = {}) => {
 function parse(val, keyMap = {}, deep = 0, deeps = [0], parent = null) {
   // 任务列表、主要子树、次要子树、监控值变化的配置
   if (keyMap._count === undefined) keyMap._count = 0;
-  const { taskKey, oneKey, twoKey, monitor = {}, lensKey, isResetKey } = getKeyname(val, keyMap);
+  const { monitor = {}, ...newKeyMap } = getKeyname(val, keyMap);
+  const { taskKey, oneKey, twoKey, lensKey, isResetKey } = newKeyMap;
   const str = val[taskKey];
   val.parent = parent;
   val.str = str;
@@ -41,20 +42,21 @@ function parse(val, keyMap = {}, deep = 0, deeps = [0], parent = null) {
   }
   val.idx = `${deeps.join('>')}-${keyMap._count++}`;
   val.uid = getUid([deep, val[lensKey], val[isResetKey], val.arr.length, val[oneKey].length, val[twoKey].length].join('-'));
-  val[oneKey] = val[oneKey].map((it, idx) => {
-    if (it) {
-      parse.call(this, it, keyMap, deep + 1, [...deeps, 'one', idx], val);
-      return this.getTools('monitor')(it, it.idx, { setLog: false, ...monitor });
-    }
-    return it;
+  [oneKey, twoKey].forEach((key, keyIdx) => {
+    val[key] = val[key].map((it, idx) => {
+      if (it) {
+        parse.call(this, it, keyMap, deep + 1, [...deeps, ['one', 'two'][keyIdx], idx], val);
+        return this.getTools('monitor')(it, it.idx, {
+          setLog: false,
+          ...monitor,
+          parse: monitor.parse ? (key, val) => {
+            return monitor.parse(key, val, it.idx, newKeyMap);
+          } : undefined,
+        });
+      }
+      return it;
+    });
   });
-  val[twoKey] = val[twoKey].map((it, idx) => {
-    if (it) {
-      parse.call(this, it, keyMap, deep + 1, [...deeps, 'two', idx], val);
-      return this.getTools('monitor')(it, it.idx, { setLog: false, ...monitor });
-    }
-    return it;
-  })
   return val;
 }
 
