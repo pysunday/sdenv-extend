@@ -1,5 +1,12 @@
 
 
+## [1.5.0](https://github.com/pysunday/sdenv-extend/compare/1.4.0...1.5.0) (2025-10-25)
+
+
+### Features
+
+* exit方法增加事件触发机制，parseTaskTree自动判断键名 ([59a7f0b](https://github.com/pysunday/sdenv-extend/commit/59a7f0b781dde5ba9327b0292944d534210185ab))
+
 ## [1.4.0](https://github.com/pysunday/sdenv-extend/compare/1.3.0...1.4.0) (2025-10-16)
 
 
