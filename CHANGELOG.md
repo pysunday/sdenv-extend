@@ -1,5 +1,12 @@
 
 
+## [1.6.0](https://github.com/pysunday/sdenv-extend/compare/1.5.0...1.6.0) (2025-10-27)
+
+
+### Features
+
+* 增加wrapFunc方法 ([313adb3](https://github.com/pysunday/sdenv-extend/commit/313adb31639608408bb655afe67ac2a12b6df684))
+
 ## [1.5.0](https://github.com/pysunday/sdenv-extend/compare/1.4.0...1.5.0) (2025-10-25)
 
 
