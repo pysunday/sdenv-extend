@@ -47,3 +47,13 @@ export const _setFuncInit = function() {
   originToString = win.Function.toString;
   toString.__proto__ = win.Function.prototype;
 }
+
+export const wrapFunc = function(obj, name, callback) {
+  const originFunc = obj[name].bind(obj);
+  const wrap = (...params) => {
+    callback(originFunc, ...params)
+  }
+  setFuncNative(wrap, originFunc.name, originFunc.length);
+  obj[name] = wrap;
+  return wrap;
+}
