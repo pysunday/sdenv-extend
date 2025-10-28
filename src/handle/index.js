@@ -10,3 +10,4 @@ export * from './dateAndRandomHandle';
 export * from './ovserver';
 export * from './requestFileSystem.js';
 export * from './indexedDB.js';
+export * from './request.js';

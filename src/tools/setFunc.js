@@ -51,7 +51,7 @@ export const _setFuncInit = function() {
 export const wrapFunc = function(obj, name, callback) {
   const originFunc = obj[name].bind(obj);
   const wrap = (...params) => {
-    callback(originFunc, ...params)
+    return callback(originFunc, ...params);
   }
   setFuncNative(wrap, originFunc.name, originFunc.length);
   obj[name] = wrap;
