@@ -1,6 +1,6 @@
 {
   "name": "sdenv-extend",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "description": "sdenv补环境框架与浏览器网页环境的共有函数库",
   "main": "build/sdenv-extend-cjs.js",
   "module": "src/index.js",

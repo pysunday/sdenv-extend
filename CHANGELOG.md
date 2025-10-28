@@ -1,5 +1,12 @@
 
 
+## [1.7.0](https://github.com/pysunday/sdenv-extend/compare/1.6.0...1.7.0) (2025-10-28)
+
+
+### Features
+
+* 增加request监听 ([241cbe2](https://github.com/pysunday/sdenv-extend/commit/241cbe252f4f1c6f7c3f7268508aa15dec37a1af))
+
 ## [1.6.0](https://github.com/pysunday/sdenv-extend/compare/1.5.0...1.6.0) (2025-10-27)
 
 
