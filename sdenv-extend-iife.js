@@ -4554,13 +4554,10 @@ var SdenvExtend = (function () {
         return cookie;
       },
       set(val) {
-        const currTimeMap = val.split(';').map(it => it.split('=').map(each => each.trim())).reduce((obj, [key]) => {
-          if (!key) return;
-          timeMap[key] === undefined ? timeMap[key] = 1 : timeMap[key] ++;
-          return { ...obj, [key]: timeMap[key] };
-        }, {});
-        if (setLog || log) win.console.log(`【SET COOKIE】长：${val.length} 值：${val}`);
-        (setCb || cb)?.(val, currTimeMap);
+        const key = val.split('=')[0];
+        timeMap[key] === undefined ? timeMap[key] = 1 : timeMap[key] ++;
+        if (setLog || log) win.console.log(`【SET COOKIE】次数：${timeMap[key]} 长：${val.length} 值：${val}`);
+        (setCb || cb)?.(val, key, timeMap[key]);
         cookieSet.call(win.document, parse(val));
       }
     });
