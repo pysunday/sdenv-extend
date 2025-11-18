@@ -4541,6 +4541,7 @@ function cookieHandle(config) {
     cb, // 回调，设置的debugger更友好
     parse = (val) => val,
   } = config;
+  const timeMap = {};
   Object.defineProperty(win.document, 'cookie', {
     configurable: false,
     enumerable: false,
@@ -4551,8 +4552,12 @@ function cookieHandle(config) {
       return cookie;
     },
     set(val) {
+      val.split(';').map(it => it.split('=').map(each => each.trim())).forEach(([key]) => {
+        if (!key) return;
+        timeMap[key] === undefined ? timeMap[key] = 1 : timeMap[key] ++;
+      });
       if (setLog || log) win.console.log(`【SET COOKIE】长：${val.length} 值：${val}`);
-      (setCb || cb)?.(val);
+      (setCb || cb)?.(val, timeMap);
       cookieSet.call(win.document, parse(val));
     }
   });
