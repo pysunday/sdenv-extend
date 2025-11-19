@@ -4924,7 +4924,6 @@ function timeoutHandle(config) {
 }
 
 function DateAndRandom(sdenv, { datas }) {
-  const win = sdenv.memory.window;
   this.sdenv = sdenv;
   if (datas && Array.isArray(datas._newdate) && Array.isArray(datas._newdate[0])) {
     datas._newdate = datas._newdate.reduce((ans, [val, num]) => ([...ans, ...new Array(num).fill(val)]), []);
@@ -4935,12 +4934,12 @@ function DateAndRandom(sdenv, { datas }) {
   }
   this.runs = [];
   Object.assign(this, {
-    _now: win.Date.now,
-    _parse: win.Date.parse,
-    _valueOf: win.Date.prototype.valueOf,
-    _getTime: win.Date.prototype.getTime,
-    _toString: win.Date.prototype.toString,
-    _random: win.Math.random,
+    _now: sdenv.memory.Date.now,
+    _parse: sdenv.memory.Date.parse,
+    _valueOf: sdenv.memory.Date.prototype.valueOf,
+    _getTime: sdenv.memory.Date.prototype.getTime,
+    _toString: sdenv.memory.Date.prototype.toString,
+    _random: sdenv.memory.Math.random,
   });
 }
 DateAndRandom.prototype.shift = function (name) {
@@ -4971,7 +4970,6 @@ DateAndRandom.prototype.wrapFun = function (funcName, def) {
   }, funcName);
 };
 DateAndRandom.prototype.wrapClass = function (className, cla) {
-  const win = this.sdenv.memory.window;
   const name = `_${className}`;
   if (!Array.isArray(this.data[name])) this.data[name] = [];
   const self = this;
@@ -4984,7 +4982,7 @@ DateAndRandom.prototype.wrapClass = function (className, cla) {
         return new cla(self.shift(name));
       }
       const val = Reflect.construct(target, argumentsList, newTarget);
-      self.data[name].push(win.Date.prototype.valueOf.call(val));
+      self.data[name].push(sdenv.memory.Date.prototype.valueOf.call(val));
       return val;
     },
     apply(target, argumentsList, newTarget) {
