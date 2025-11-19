@@ -4538,10 +4538,8 @@ var SdenvExtend = (function () {
   function cookieInit(memory) {
     if (memory.cookieGet) return;
     const win = memory.window;
-    const cookieGet = Object.getOwnPropertyDescriptor(win.Document.prototype, 'cookie').get;
-    const cookieSet = Object.getOwnPropertyDescriptor(win.Document.prototype, 'cookie').set;
-    memory.cookieSet = cookieSet.bind(win.Document);
-    memory.cookieGet = cookieGet.bind(win.Document);
+    memory.cookieGet = (...params) => Object.getOwnPropertyDescriptor(win.Document.prototype, 'cookie').get.call(win.document, ...params);
+    memory.cookieSet = (...params) => Object.getOwnPropertyDescriptor(win.Document.prototype, 'cookie').set.call(win.document, ...params);
   }
 
   function cookieHandle(config) {
@@ -5393,7 +5391,7 @@ var SdenvExtend = (function () {
         } else if (Array.isArray(handles[key])) {
           for (let name of handles[key]) {
             if (win[name]) {
-              memory[name] = typeof win[name] === 'function' ? win[name].bind(win) : win[name];
+              memory[name] = win[name];
             }
           }
         }
