@@ -5056,7 +5056,7 @@ var SdenvExtend = (function () {
     if (typeof config !== 'object') config = {};
     const win = this.memory.window;
     const delay = (ms) => new Promise(resolve => win.setTimeout(resolve, ms));
-    const { ignore, newLog, addLog, runLog, log, addCb, runCb, newCb, cb, filter = () => true } = config;
+    const { newLog, addLog, runLog, log, addCb, runCb, newCb, cb, filter = () => true } = config;
     win.MutationObserver = this.getTools('setNativeFuncName')(new Proxy(win.MutationObserver, {
       construct: function (target, argArray, newTarget) {
         const [func] = argArray;
@@ -5064,10 +5064,9 @@ var SdenvExtend = (function () {
         if (newLog || log) win.console.log(`【NEW OVSERVER】方法：${funcStr}`);
         (newCb || cb)?.(...argArray);
         const result = Reflect.construct(target, [async (...params) => {
-          if (!filter || !filter(...argArray)) return;
           if (runLog || log) win.console.log(`【RUN OVSERVER】方法：${funcStr}`);
           (runCb || cb)?.(...params[0]);
-          if (ignore) return;
+          if (!filter || !filter(...argArray)) return;
           await delay(0);
           func(...params);
         }], newTarget);
@@ -5112,7 +5111,7 @@ var SdenvExtend = (function () {
   function indexedDBHandle(config) {
     if (typeof config !== 'object') config = {};
     const win = this.memory.window;
-    const { cb, log, ignore, getLog, setLog, getCb, setCb } = config;
+    const { cb, log, getLog, setLog, getCb, setCb, filter = () => true } = config;
     const self = this;
     win.IDBFactory.prototype.open = this.getTools('setFuncNative')(new Proxy(win.IDBFactory.prototype.open, {
       apply(target, thisArg, params) {
@@ -5130,7 +5129,7 @@ var SdenvExtend = (function () {
                 win.console.log(`indexedDB ${name} Setting ${property} to ${self.tools.compressText(value.toString())}`);
               }
               (setCb || cb)?.(property, value, name);
-              if (ignore) value = () => {};
+              if (!filter || !filter(property)) value = () => {};
               target[property] = value;
               return true;
             }
