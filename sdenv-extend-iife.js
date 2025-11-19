@@ -5387,11 +5387,11 @@ var SdenvExtend = (function () {
       }
       const memory = this.memory;
       memory.window = win;
-      for (let key in Object.keys(handles).filter(key => key.endsWith('Init'))) {
+      for (let key of Object.keys(handles).filter(key => key.endsWith('Init'))) {
         if (typeof handles[key] === 'function') {
           handles[key].call(this, memory);
         } else if (Array.isArray(handles[key])) {
-          for (let name in handles[key]) {
+          for (let name of handles[key]) {
             if (win[name]) {
               memory[name] = typeof win[name] === 'function' ? win[name].bind(win) : win[name];
             }
