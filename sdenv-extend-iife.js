@@ -4474,6 +4474,8 @@ var SdenvExtend = (function () {
     }), 'eval');
   }
 
+  const evalInit = ['eval'];
+
   function funcHandle(config) {
     const self = this;
     if (typeof config !== 'object') config = {};
@@ -4505,6 +4507,8 @@ var SdenvExtend = (function () {
     this.getTools('setNativeFuncName')(win.Function.prototype, '');
   }
 
+  const funcInit = ['Function'];
+
   function eventHandle(config) {
     const self = this;
     const win = this.memory.window;
@@ -4529,11 +4533,21 @@ var SdenvExtend = (function () {
     }), 'addEventListener');
   }
 
-  function cookieHandle(config) {
-    if (typeof config !== 'object') config = {};
-    const win = this.memory.window;
+  const eventInit = ['addEventListener'];
+
+  function cookieInit(memory) {
+    if (memory.cookieGet) return;
+    const win = memory.window;
     const cookieGet = Object.getOwnPropertyDescriptor(win.Document.prototype, 'cookie').get;
     const cookieSet = Object.getOwnPropertyDescriptor(win.Document.prototype, 'cookie').set;
+    memory.cookieSet = cookieSet.bind(win.Document);
+    memory.cookieGet = cookieGet.bind(win.Document);
+  }
+
+  function cookieHandle(config) {
+    if (typeof config !== 'object') config = {};
+    const self = this;
+    const win = this.memory.window;
     const {
       getLog, // 开启get日志
       setLog, // 开启set日志
@@ -4548,7 +4562,7 @@ var SdenvExtend = (function () {
       configurable: false,
       enumerable: false,
       get() {
-        const cookie = cookieGet.call(win.document);
+        const cookie = self.memory.cookieGet();
         if (getLog || log) win.console.log(`【GET COOKIE】长：${cookie.length} 值：${cookie}`);
         (getCb || cb)?.(cookie);
         return cookie;
@@ -4558,7 +4572,7 @@ var SdenvExtend = (function () {
         timeMap[key] === undefined ? timeMap[key] = 1 : timeMap[key] ++;
         if (setLog || log) win.console.log(`【SET COOKIE】次数：${timeMap[key]} 长：${val.length} 值：${val}`);
         (setCb || cb)?.(val, key, timeMap[key]);
-        cookieSet.call(win.document, parse(val));
+        self.memory.cookieSet(parse(val));
       }
     });
   }
@@ -4892,6 +4906,8 @@ var SdenvExtend = (function () {
     }), 'setInterval');
   }
 
+  const intervalInit = ['setInterval'];
+
   function timeoutHandle(config) {
     const self = this;
     if (typeof config !== 'object') config = {};
@@ -4920,10 +4936,9 @@ var SdenvExtend = (function () {
         return self.getTools('addTimeout')(func, timeout);
       },
     }), 'setTimeout');
-    win.document.addEventListener('readystatechange', function() {
-      if (log) win.console.log(`【READY STATE】${win.document.readyState}`);
-    });
   }
+
+  const timeoutInit = ['setTimeout'];
 
   function DateAndRandom(sdenv, { datas }) {
     this.sdenv = sdenv;
@@ -5036,6 +5051,8 @@ var SdenvExtend = (function () {
     win.Math.random = dateAndRandom.wrapFun('random', randomReturn);
   }
 
+  const dateAndRandomInit = ['Date', 'Math'];
+
   function ovserverHandle(config) {
     const self = this;
     if (typeof config !== 'object') config = {};
@@ -5068,6 +5085,8 @@ var SdenvExtend = (function () {
     }), 'MutationObserver');
   }
 
+  const ovserverInit = ['MutationObserver'];
+
   function requestFileSystemHandle(config) {
     if (typeof config !== 'object') config = {};
     const win = this.memory.window;
@@ -5089,6 +5108,8 @@ var SdenvExtend = (function () {
       }), 'webkitRequestFileSystem', 3);
     }
   }
+
+  const requestFileSystemInit = ['webkitRequestFileSystem'];
 
   function indexedDBHandle(config) {
     if (typeof config !== 'object') config = {};
@@ -5167,6 +5188,8 @@ var SdenvExtend = (function () {
       }
     });
   }
+
+  const requestInit = ['XMLHttpRequest'];
 
   function windowHandle({ ...config } = {}) {
     const self = this;
@@ -5299,16 +5322,26 @@ var SdenvExtend = (function () {
     batteryHandle: batteryHandle,
     connectionHandle: connectionHandle,
     cookieHandle: cookieHandle,
+    cookieInit: cookieInit,
     dateAndRandomHandle: dateAndRandomHandle,
+    dateAndRandomInit: dateAndRandomInit,
     evalHandle: evalHandle,
+    evalInit: evalInit,
     eventHandle: eventHandle,
+    eventInit: eventInit,
     funcHandle: funcHandle,
+    funcInit: funcInit,
     indexedDBHandle: indexedDBHandle,
     intervalHandle: intervalHandle,
+    intervalInit: intervalInit,
     ovserverHandle: ovserverHandle,
+    ovserverInit: ovserverInit,
     requestFileSystemHandle: requestFileSystemHandle,
+    requestFileSystemInit: requestFileSystemInit,
     requestHandle: requestHandle,
+    requestInit: requestInit,
     timeoutHandle: timeoutHandle,
+    timeoutInit: timeoutInit,
     windowHandle: windowHandle
   });
 
@@ -5352,13 +5385,19 @@ var SdenvExtend = (function () {
           win = global;
         }
       }
-      Object.assign(this.memory, { window: win }, [
-        'eval', 'Function', 'Date', 'Math', 'setTimeout', 'setInterval',
-        'webkitRequestFileSystem', 'XMLHttpRequest', 'MutationObserver', 'addEventListener',
-      ].reduce((ans, key) => ({
-        ...ans,
-        [key]: typeof win[key] === 'function' ? win[key].bind(win) : win[key]
-      }), {}));
+      const memory = this.memory;
+      memory.window = win;
+      for (let key in Object.keys(handles).filter(key => key.endsWith('Init'))) {
+        if (typeof handles[key] === 'function') {
+          handles[key].call(this, memory);
+        } else if (Array.isArray(handles[key])) {
+          for (let name in handles[key]) {
+            if (win[name]) {
+              memory[name] = typeof win[name] === 'function' ? win[name].bind(win) : win[name];
+            }
+          }
+        }
+      }
       if (this.config.isNode && win.Window) {
         // tools._setFuncInit(win);
         Object.setPrototypeOf(win.window, win.Window.prototype);
