@@ -2114,14 +2114,16 @@ const gv = {
     // 强制setInterval的时间设置，如设置的足够大让执行函数不运行，其中：undefined表示通过框架拦截并计算运行时间，0表示不拦截且使用原时间
     timeInterval: undefined,
     timeTimeout: undefined, // 与timeInterval功能类似，区别是控制setTimeout
-    isNode: typeof window === 'undefined', // node环境标识
+    isNode: typeof window === 'undefined', // 标记是否是node环境初始化得到的sdenv
+    envType: 'browser', // 执行环境类型，node或者browser，初始化时赋予
     // start window proxy
     // 控制window返回undefined的属性名集合
-    windowGetterUndefinedKeys: ['_runScripts', '_globalObject'],
+    windowGetterUndefinedKeys: ["_globalObject", "_sdGlobalObject","_globalProxy","_registeredHandlers","_eventHandlers","_resourceLoader","_document","_origin","_sessionHistory","_virtualConsole","_runScripts","_top","_parent","_frameElement","_length","_pretendToBeVisual","_storageQuota","_commonForOrigin","_currentOriginData","_localStorage","_sessionStorage","_selection","_customElementRegistry","loadTextSync"],
     // 控制window返回not defined报错的的属性名集合
     windowGetterErrorKeys: ['process'],
     // 避免in window报错的的属性名集合
-    windowGetterOwnKeys: [Symbol.toStringTag, 'addEventListener', 'removeEventListener', 'dispatchEvent'],
+    // windowGetterOwnKeys: [Symbol.toStringTag, 'addEventListener', 'removeEventListener', 'dispatchEvent', 'captchaId'],
+    windowGetterOwnKeys: [],
     // 控制window返回自身的属性名集合
     windowGetterWinKeys: ['window', 'top', 'self', 'frames', 'globalThis'],
     // end window proxy
@@ -3036,9 +3038,9 @@ var Promise$1 = getNative(root, 'Promise');
 var Promise$2 = Promise$1;
 
 /* Built-in method references that are verified to be native. */
-var Set$1 = getNative(root, 'Set');
+var Set = getNative(root, 'Set');
 
-var Set$2 = Set$1;
+var Set$1 = Set;
 
 /* Built-in method references that are verified to be native. */
 var WeakMap$1 = getNative(root, 'WeakMap');
@@ -3058,7 +3060,7 @@ var dataViewTag = '[object DataView]';
 var dataViewCtorString = toSource(DataView$1),
     mapCtorString = toSource(Map),
     promiseCtorString = toSource(Promise$2),
-    setCtorString = toSource(Set$2),
+    setCtorString = toSource(Set$1),
     weakMapCtorString = toSource(WeakMap$2);
 
 /**
@@ -3074,7 +3076,7 @@ var getTag = baseGetTag;
 if ((DataView$1 && getTag(new DataView$1(new ArrayBuffer(1))) != dataViewTag) ||
     (Map && getTag(new Map) != mapTag) ||
     (Promise$2 && getTag(Promise$2.resolve()) != promiseTag) ||
-    (Set$2 && getTag(new Set$2) != setTag) ||
+    (Set$1 && getTag(new Set$1) != setTag) ||
     (WeakMap$2 && getTag(new WeakMap$2) != weakMapTag)) {
   getTag = function(value) {
     var result = baseGetTag(value),
@@ -3868,8 +3870,8 @@ function loopRunInit() {
       });
       ascii[key] = orderBy(Object.entries(ascii[key]).map(([code, num]) => ({ code, num })), 'num', 'desc');
     });
+    const retstr = JSON.stringify(data);
     if (copy) {
-      const retstr = JSON.stringify(data);
       if (typeof copy === 'function') {
         copy(retstr);
         console.log('运行时数据复制成功');
@@ -3877,11 +3879,12 @@ function loopRunInit() {
         console.log(retstr);
       }
     }
-    return { ascii, ...data };
+    return { ascii, copystr: retstr, ...data };
   }, 'getLoopData');
 }
 
 function addConstant(object, property, value) {
+  if (typeof object !== 'object') throw new Error(`addConstant方法报错，传入数据非对象: ${object}`);
   Object.defineProperty(object, property, {
     configurable: false,
     enumerable: true,
@@ -3999,8 +4002,8 @@ const _setFuncInit = function(win) {
   toString.__proto__ = win.Function.prototype;
 };
 
-const wrapFunc = function(obj, name, callback) {
-  const originFunc = obj[name].bind(obj);
+const wrapFunc = function(obj, name, callback, autoBind = true) {
+  const originFunc = autoBind ? obj[name].bind(obj) : obj[name];
   const wrap = (...params) => {
     return callback(originFunc, ...params);
   };
@@ -5186,10 +5189,15 @@ function requestHandle(config) {
 
 const requestInit = ['XMLHttpRequest'];
 
-function windowHandle({ ...config } = {}) {
+function windowHandle(config = {}) {
+  if (!this.config.isNode) {
+    console.error('该方法只在node环境下有效!');
+    return;
+  }
   const self = this;
   const vm = require("vm");
   if (typeof config !== 'object') config = {};
+  let finishFlag = false;
   const realm = {
     win: undefined,
     func: undefined,
@@ -5203,100 +5211,92 @@ function windowHandle({ ...config } = {}) {
     if (!Array.isArray(config[name])) throw new Error(`参数${name}值必须为数组请检查！`);
     config[name].push(...self.config[name]);
   });
-  const {
-    cb,
-    parse = code => code,
-    windowGetterUndefinedKeys,
-    windowGetterErrorKeys,
-    windowGetterOwnKeys,
-    windowGetterWinKeys,
-  } = config;
-  const log = (l => {
-    if (!l || typeof l === 'function') return l;
-    return (...p) => {
-      self.memory.window.console.log(['【sdenv window proxy】', p.join(': ')].join(''));
-    }
-  })(config.log);
+  self._registerConfig('handle:window', config, () => {
+    config.log = (l => {
+      if (!l || typeof l === 'function') return l;
+      return (type, ...p) => {
+        if (Array.isArray(l) && !l.includes(p[0])) return;
+        self.memory.window.console.log(`【WINDOW PROXY】${type}: ${p.join(' = ')}`);
+      }
+    })(config.log);
+    config.parse = (p => typeof p === 'function' ? p : (val => val))(config.parse);
+  });
   self.getTools('wrapFunc')(vm, 'runInContext', (runInContext, code, context, setting) => {
     const createContext = Object.create(null);
-    if (String(context) === '[object Window]') {
-      realm.ori = context;
+    if (context === 'window' || String(context) === '[object Window]') {
+      if (context !== 'window') realm.ori = context;
       const handler = {
         has(target, prop) {
-          log && log('has', String(prop));
-          if (windowGetterUndefinedKeys.includes(prop)) return false;
-          return Reflect.has(realm.ori, prop);
+          finishFlag && config.log && config.log('has', String(prop));
+          if (config.windowGetterUndefinedKeys.includes(prop)) return false;
+          return config.parse(Reflect.has(realm.ori, prop), 'has');
         },
         deleteProperty(target, prop) {
-          log && log('deleteProperty', String(prop));
-          return Reflect.deleteProperty(realm.ori, prop);
+          finishFlag && config.log && config.log('deleteProperty', String(prop));
+          return config.parse(Reflect.deleteProperty(realm.ori, prop), 'deleteProperty');
         },
         ownKeys(target) {
-          log && log("ownKeys");
-          return Array.from(new Set([...Reflect.ownKeys(realm.ori), ...windowGetterOwnKeys]));
+          finishFlag && config.log && config.log("ownKeys");
+          // const ans = Array.from(new Set([...Reflect.ownKeys(realm.ori), ...config.windowGetterOwnKeys]));
+          return config.parse(Reflect.ownKeys(realm.ori).filter(it => !config.windowGetterUndefinedKeys.includes(it)), 'ownKeys');
         },
         getOwnPropertyDescriptor(target, prop) {
-          log && log('getOwnPropertyDescriptor', String(prop));
-          if (windowGetterWinKeys.includes(prop)) {
+          finishFlag && config.log && config.log('getOwnPropertyDescriptor', String(prop));
+          if (config.windowGetterWinKeys.includes(prop)) {
             return Reflect.getOwnPropertyDescriptor(target, prop);
           }
-          const descriptor =
-            Reflect.getOwnPropertyDescriptor(realm.ori, prop) ||
-            { value: realm.ori[prop] };
-          if (descriptor.value === undefined) return undefined;
-          if (target[prop] === undefined) Object.defineProperty(target, prop, descriptor);
-          return descriptor;
+          const descOri = Reflect.getOwnPropertyDescriptor(realm.ori, prop);
+          let descTar = Reflect.getOwnPropertyDescriptor(target, prop);
+          if (!descTar && descOri?.configurable === false) {
+            Object.defineProperty(target, prop, { ...descOri, configurable: true });
+            descTar = Reflect.getOwnPropertyDescriptor(target, prop);
+          }
+          return config.parse(descTar || descOri, 'getOwnPropertyDescriptor');
         },
         defineProperty(target, prop, descriptor) {
-          log && log(`defineProperty: ${String(prop)}`);
-          return Reflect.defineProperty(realm.ori, prop, descriptor);
+          finishFlag && config.log && config.log(`defineProperty: ${String(prop)}`);
+          return config.parse(Reflect.defineProperty(realm.ori, prop, descriptor), 'defineProperty');
         },
         preventExtensions(target) {
-          log && log("preventExtensions");
-          return Reflect.preventExtensions(realm.ori);
+          finishFlag && config.log && config.log("preventExtensions");
+          return config.parse(Reflect.preventExtensions(realm.ori), 'preventExtensions');
         },
         isExtensible(target) {
-          log && log("isExtensible");
-          return Reflect.isExtensible(realm.ori);
+          finishFlag && config.log && config.log("isExtensible");
+          return config.parse(Reflect.isExtensible(realm.ori), 'isExtensible');
         },
         getPrototypeOf(target) {
-          log && log("getPrototypeOf");
-          return Reflect.getPrototypeOf(realm.ori);
+          finishFlag && config.log && config.log("getPrototypeOf");
+          return config.parse(Reflect.getPrototypeOf(realm.ori), 'getPrototypeOf');
         },
         setPrototypeOf(target, proto) {
-          log && log("setPrototypeOf");
-          return Reflect.setPrototypeOf(realm.ori, proto);
+          finishFlag && config.log && config.log("setPrototypeOf");
+          return config.parse(Reflect.setPrototypeOf(realm.ori, proto), 'setPrototypeOf');
         },
         get(target, prop) {
-          log && log('get', String(prop));
-          if (windowGetterWinKeys.includes(prop)) {
-            if (!realm.win) {
-              realm.win = new Proxy(createContext, handler);
-              windowGetterWinKeys.forEach(key => {
-                realm.win[key] = realm.win;
-              });
-              realm.proxyRecord.set(realm.win, true);
-              realm.win.Function = realm.func;
-            }
-            return realm.win;
+          finishFlag && !['devtoolsFormatters'].includes(prop) && config.log && config.log('get', String(prop));
+          if (config.windowGetterWinKeys.includes(prop)) return realm.win;
+          if (config.windowGetterUndefinedKeys.includes(prop)) return undefined;
+          if (prop === 'eval') {
+            return self.tools.setFuncNative((code) => {
+              if (!code.includes('window')) return realm.ori.eval(code);
+              return runInContext(code, vm.createContext(realm.context), setting);
+            }, 'eval', 1)
           }
-          if (windowGetterUndefinedKeys.includes(prop)) return undefined;
-          if (!Reflect.has(realm.ori, prop) && windowGetterErrorKeys.includes(prop)) {
+          if (!Reflect.has(realm.ori, prop) && config.windowGetterErrorKeys.includes(prop)) {
             throw new ReferenceError(`${prop} is not defined`);
           }
-          return Reflect.get(realm.ori, prop);
+          return config.parse(Reflect.get(realm.ori, prop), 'get');
         },
         set(target, prop, value) {
-          log && log('set', `${String(prop)} = ${value}`);
-          if (windowGetterWinKeys.includes(prop)) {
-            return false;
-          }
-          return Reflect.set(realm.ori, prop, value);
+          finishFlag && config.log && config.log('set', String(prop), value);
+          if (config.windowGetterWinKeys.includes(prop)) return false;
+          return config.parse(Reflect.set(realm.ori, String(prop), value), 'set');
         },
       };
       if (!realm.context) {
         realm.context = new Proxy(createContext, handler);
-        windowGetterWinKeys.forEach(key => {
+        config.windowGetterWinKeys.forEach(key => {
           realm.context[key] = realm.context;
         });
         realm.proxyRecord.set(realm.context, true);
@@ -5304,9 +5304,17 @@ function windowHandle({ ...config } = {}) {
         self.getTools('setToString')(realm.func.prototype);
         realm.context.Window.constructor = realm.context.Function = realm.func;
       }
+      if (!realm.win) {
+        realm.win = new Proxy(createContext, handler);
+        config.windowGetterWinKeys.forEach(key => {
+          realm.win[key] = realm.win;
+        });
+        realm.proxyRecord.set(realm.win, true);
+        realm.win.Function = realm.func;
+      }
       const newContext = vm.createContext(realm.context);
-      cb && cb(runInContext, newContext, setting, context);
-      return runInContext(parse(code), newContext, setting);
+      finishFlag = true;
+      return runInContext(config.parse(code, 'code', context), newContext, setting);
     }
     return runInContext(code, context, setting);
   });
@@ -5342,18 +5350,27 @@ var handles = /*#__PURE__*/Object.freeze({
 
 class index {
   constructor(config, win = undefined) {
-    Object.assign(this, merge(
-      {},
-      gv,
-      config || {},
-      {
-        tools,
-        adapt,
+    if (!win) {
+      if (window) {
+        win = window;
+      } else if (global) {
+        win = global;
       }
-    ));
+    }
+    Object.assign(this, merge({}, gv, config || {}, {
+      tools,
+      adapt,
+    }));
+    if (win.sdenv) {
+      this.config.envType = win.sdenv.config.envType;
+    } else if (this.config.isNode) {
+      this.config.envType = 'node';
+    }
     this.setWindow(win);
     loopRunInit.call(this);
     this.bindThis();
+    win.sdenv = this;
+    this.configPools = {}; // 配置池
   }
 
   bindThis() {
@@ -5373,13 +5390,6 @@ class index {
   }
 
   setWindow(win) {
-    if (!win) {
-      if (window) {
-        win = window;
-      } else if (global) {
-        win = global;
-      }
-    }
     const memory = this.memory;
     memory.window = win;
     for (let key of Object.keys(handles).filter(key => key.endsWith('Init'))) {
@@ -5397,6 +5407,20 @@ class index {
       // tools._setFuncInit(win);
       Object.setPrototypeOf(win.window, win.Window.prototype);
     }
+  }
+
+  _registerConfig(name, cfg, callback) {
+    callback();
+    this.configPools[name] = (newCfg) => {
+      if (typeof newCfg !== 'object') return;
+      callback(merge(cfg, newCfg));
+    };
+  }
+
+  getConfig(name) {
+    const handleName = `handle:${name}`;
+    if (!this.configPools[handleName]) console.warn(`handle:${name} 不存在或未注册请检查！`);
+    return this.configPools[handleName];
   }
 
   getHandle(name) {
