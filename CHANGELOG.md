@@ -1,5 +1,12 @@
 
 
+## [1.8.0](https://github.com/pysunday/sdenv-extend/compare/1.7.0...1.8.0) (2025-12-09)
+
+
+### Features
+
+* 新版本适配及代码优化 ([b453a71](https://github.com/pysunday/sdenv-extend/commit/b453a714139a5487afd3067f1f4f87523a36cb46))
+
 ## [1.7.0](https://github.com/pysunday/sdenv-extend/compare/1.6.0...1.7.0) (2025-10-28)
 
 
