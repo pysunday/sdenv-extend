@@ -9,7 +9,16 @@ export const gv = {
     // 强制setInterval的时间设置，如设置的足够大让执行函数不运行，其中：undefined表示通过框架拦截并计算运行时间，0表示不拦截且使用原时间
     timeInterval: undefined,
     timeTimeout: undefined, // 与timeInterval功能类似，区别是控制setTimeout
-    isNode: typeof window === 'undefined', // node环境标识
+    isNode: typeof window === 'undefined', // 标记是否是node环境初始化得到的sdenv
+    envType: 'browser', // 执行环境类型，node或者browser，初始化时赋予
+    // start window proxy
+    // 控制window返回undefined的属性名集合
+    windowGetterUndefinedKeys: ["_top","_parent","_length","_globalObject", "_sdGlobalObject","_globalProxy","_registeredHandlers","_eventHandlers","_resourceLoader","_document","_origin","_sessionHistory","_virtualConsole","_runScripts","_frameElement","_pretendToBeVisual","_storageQuota","_commonForOrigin","_currentOriginData","_localStorage","_sessionStorage","_selection","_customElementRegistry","loadTextSync"],
+    // 控制window返回not defined报错的的属性名集合
+    windowGetterErrorKeys: ['process'],
+    // 控制window返回自身的属性名集合
+    windowGetterWinKeys: ['window', 'top', 'self', 'frames', 'globalThis'],
+    // end window proxy
   },
   memory: {
     runinfo: { // 程序运行时间节点
@@ -17,11 +26,6 @@ export const gv = {
       isDied: false, // 窗口生命是否已经结束
     },
     timeout: null, // 存放处理setTimeout/setInterval的类
-    sdEval: eval, // node内置eval
-    sdWindow: typeof window !== 'undefined' ? window : global,
-    sdFunction: Function,
-    sdDate: Date,
-    sdMath: Math,
     SdenvExtend: null, // node环境缓存sdenv-extend插件，用于浏览器环境使用
   },
   cache: {

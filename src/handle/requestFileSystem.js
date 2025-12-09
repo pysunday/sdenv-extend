@@ -1,7 +1,7 @@
 export function requestFileSystemHandle(config) {
   if (typeof config !== 'object') config = {};
-  const win = this.memory.sdWindow;
-  const { cb, log, ignore } = config;
+  const win = this.memory.window;
+  const { cb, log, filter } = config;
   const self = this;
   if (win.webkitRequestFileSystem) {
     // webkit内核浏览器属性
@@ -13,11 +13,13 @@ export function requestFileSystemHandle(config) {
           size: params[1],
           params,
         });
-        if (ignore) params[2] = params[3] = () => {};
+        if (!filter || !filter(...params)) return;
         return Reflect.apply(target, thisArg, params);
       },
     }), 'webkitRequestFileSystem', 3);
   }
 }
+
+export const requestFileSystemInit = ['webkitRequestFileSystem'];
 
 export default requestFileSystemHandle;

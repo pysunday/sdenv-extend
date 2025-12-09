@@ -1,7 +1,7 @@
 export function intervalHandle(config) {
   const self = this;
   if (typeof config !== 'object') config = {};
-  const win = this.memory.sdWindow;
+  const win = this.memory.window;
   const { log, cb, time, filter = () => true } = config;
   win.setInterval = this.getTools('setNativeFuncName')(new Proxy(win.setInterval, {
     apply: function (target, thisArg, params) {
@@ -27,5 +27,7 @@ export function intervalHandle(config) {
     },
   }), 'setInterval');
 }
+
+export const intervalInit = ['setInterval'];
 
 export default intervalHandle;

@@ -4,7 +4,7 @@ const evalmap = {
 
 export function evalHandle(config) {
   if (typeof config !== 'object') config = {};
-  const win = this.memory.sdWindow;
+  const win = this.memory.window;
   const { cb, log } = config;
   const self = this;
   win.eval = this.getTools('setNativeFuncName')(new Proxy(win.eval, {
@@ -31,5 +31,7 @@ export function evalHandle(config) {
     },
   }), 'eval');
 }
+
+export const evalInit = ['eval'];
 
 export default evalHandle;

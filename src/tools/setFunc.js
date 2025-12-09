@@ -1,6 +1,6 @@
 let originToString = Function.toString;
 const canToStrigArr = [];
-const toString = function() {
+export const toString = function() {
   if (canToStrigArr.includes(this.name)) {
     return `function ${this.name || ''}() { [native code] }`;
   }
@@ -34,26 +34,35 @@ export const setFuncName = function(func, name) {
   return func;
 }
 
+export const setToString = function(target) {
+  // 修改方法的name属性值
+  Object.defineProperty(target, 'toString', {
+    configurable: true,
+    enumerable: false,
+    writable: false,
+    value: toString
+  });
+}
+
 export const setNativeFuncName = function(func, name, len) {
   setFuncName(func, name);
   setFuncNative(func, name, len);
   return func;
 }
-setNativeFuncName(toString, 'toString');
+setFuncNative(toString, 'toString');
 
-export const _setFuncInit = function() {
-  // 修改Function指向与toString原型链指向
-  const win = this.memory.sdWindow;
-  originToString = win.Function.toString;
+export const _setFuncInit = function(win) {
+  setFuncNative(toString, 'toString');
+  win.Function.prototype.toString = toString;
   toString.__proto__ = win.Function.prototype;
 }
 
 export const wrapFunc = function(obj, name, callback) {
-  const originFunc = obj[name].bind(obj);
-  const wrap = (...params) => {
-    return callback(originFunc, ...params);
-  }
-  setFuncNative(wrap, originFunc.name, originFunc.length);
+  const originFunc = obj[name];
+  const wrap = function (...params) {
+    return callback.call(this, originFunc, ...params);
+  };
+  setFuncNative(wrap, name, originFunc.length);
   obj[name] = wrap;
   return wrap;
 }

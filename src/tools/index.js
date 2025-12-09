@@ -9,3 +9,5 @@ export * from './runtime';
 export * from './setFunc';
 export * from './setObj';
 export * from './timeout';
+export * from './check';
+export * from './delay';

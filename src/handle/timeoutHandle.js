@@ -1,7 +1,7 @@
 export function timeoutHandle(config) {
   const self = this;
   if (typeof config !== 'object') config = {};
-  const win = this.memory.sdWindow;
+  const win = this.memory.window;
   const { log, cb, time, filter = () => true } = config;
   win.setTimeout = this.getTools('setNativeFuncName')(new Proxy(win.setTimeout, {
     apply: function (target, thisArg, params) {
@@ -17,7 +17,7 @@ export function timeoutHandle(config) {
             if (log) win.console.log(`【TIMEOUT RUN】setTimeout执行，时间：${timeout}，方法：${funcStr}`);
             if (cb) cb('run_before', timeoutIdx);
             func()
-            if (log) win.console.log(`【TIMEOUT RUNED】setTimeout执行，时间：${timeout}，方法：${funcStr}`);
+            if (log) win.console.log(`【TIMEOUT RUNEND】setTimeout执行，时间：${timeout}，方法：${funcStr}`);
             if (cb) cb('run_after', timeoutIdx);
           },
           time || timeout,
@@ -26,9 +26,8 @@ export function timeoutHandle(config) {
       return self.getTools('addTimeout')(func, timeout);
     },
   }), 'setTimeout');
-  win.document.addEventListener('readystatechange', function() {
-    if (log) win.console.log(`【READY STATE】${win.document.readyState}`);
-  });
 }
+
+export const timeoutInit = ['setTimeout'];
 
 export default timeoutHandle;

@@ -1,7 +1,7 @@
 export function requestHandle(config) {
   const self = this;
   if (typeof config !== 'object') config = {};
-  const win = this.memory.sdWindow;
+  const win = this.memory.window;
   const { log, cb } = config;
   win.XMLHttpRequest = new win.Proxy(win.XMLHttpRequest, {
     construct(target, args, newTarget) {
@@ -29,3 +29,7 @@ export function requestHandle(config) {
     }
   });
 }
+
+export const requestInit = ['XMLHttpRequest'];
+
+export default requestHandle;

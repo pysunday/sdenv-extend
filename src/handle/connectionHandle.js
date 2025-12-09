@@ -9,7 +9,7 @@ type：网络连接类型，有些浏览器有有些没有，如："bluetooth"(�
 */
 
 export function connectionHandle(config) {
-  const win = this.memory.sdWindow;
+  const win = this.memory.window;
   if (typeof config !== 'object') {
     config = {};
   }

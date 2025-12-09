@@ -1,7 +1,7 @@
 export function indexedDBHandle(config) {
   if (typeof config !== 'object') config = {};
-  const win = this.memory.sdWindow;
-  const { cb, log, ignore, getLog, setLog, getCb, setCb } = config;
+  const win = this.memory.window;
+  const { cb, log, getLog, setLog, getCb, setCb, filter = () => true } = config;
   const self = this;
   win.IDBFactory.prototype.open = this.getTools('setFuncNative')(new Proxy(win.IDBFactory.prototype.open, {
     apply(target, thisArg, params) {
@@ -19,7 +19,7 @@ export function indexedDBHandle(config) {
               win.console.log(`indexedDB ${name} Setting ${property} to ${self.tools.compressText(value.toString())}`);
             }
             (setCb || cb)?.(property, value, name);
-            if (ignore) value = () => {};
+            if (!filter || !filter(property)) value = () => {};
             target[property] = value;
             return true;
           }

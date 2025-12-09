@@ -1,7 +1,7 @@
 export function funcHandle(config) {
   const self = this;
   if (typeof config !== 'object') config = {};
-  const win = this.memory.sdWindow;
+  const win = this.memory.window;
   const { log, cb } = config;
   win.Function = this.getTools('setNativeFuncName')(new Proxy(win.Function, {
     apply(target, thisArg, params) {
@@ -28,5 +28,7 @@ export function funcHandle(config) {
   win.Function.prototype.constructor = win.Function;
   this.getTools('setNativeFuncName')(win.Function.prototype, '');
 }
+
+export const funcInit = ['Function'];
 
 export default funcHandle;

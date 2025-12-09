@@ -44,7 +44,7 @@ export function batteryHandle(config) {
   } else if (typeof config !== 'object') {
     config = {};
   }
-  const win = this.memory.sdWindow;
+  const win = this.memory.window;
   win.navigator.getBattery = this.getTools('setNativeFuncName')(() => {
     return new Promise((resolve, reject) => {
       resolve({

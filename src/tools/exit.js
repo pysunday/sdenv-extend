@@ -1,5 +1,5 @@
 export function exit(params) {
-  const win = this.memory.sdWindow;
+  const win = this.memory.window;
   this.getTools('setDied')()
   if (params.eventId) {
     win.dispatchEvent(new win.CustomEvent(`sdenv:${params.eventId}`, { detail: params }));

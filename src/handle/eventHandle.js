@@ -1,10 +1,9 @@
 export function eventHandle(config) {
   const self = this;
-  const win = this.memory.sdWindow;
-  const delay = (ms) => new Promise(resolve => win.setTimeout(resolve, ms))
+  const win = this.memory.window;
   if (typeof config !== 'object') config = {};
-  const { addLog, runLog, log, addCb, runCb, cb, filter = () => true } = config;
-  win.addEventListener = this.getTools('setNativeFuncName')(new Proxy(win.addEventListener, {
+  const { addLog, runLog, log, addCb, runCb, cb, filter = () => true, parse = (type, ...p) => p } = config;
+  win.addEventListener = win.document.addEventListener = this.getTools('setFuncNative')(new Proxy(win.addEventListener, {
     apply: function (target, thisArg, params) {
       if (!filter || !filter(...params)) return;
       const [type, callback] = params;
@@ -13,16 +12,16 @@ export function eventHandle(config) {
       (addCb || cb)?.(...params);
       return Reflect.apply(target, thisArg, [
         type,
-        async () => {
-          // load事件需要等下一次事件循环时执行: 延时为0的定时任务先执行
-          if (type === 'load') await delay(0);
+        (...p) => {
           (runCb || cb)?.(...params);
           if (runLog || log) win.console.log(`【RUN EVENT】事件名：${type}, 方法：${funcStr}`);
-          callback();
+          callback(...parse(type, p));
         },
       ]);
     },
-  }), 'addEventListener');
+  }), 'addEventListener', 2);
 }
+
+export const eventInit = ['addEventListener'];
 
 export default eventHandle;

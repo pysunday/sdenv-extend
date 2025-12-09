@@ -5,10 +5,18 @@ export function loopRunInit() {
   const sdenv = this;
   const addUtil = sdenv.getTools('addUtil');
   const preLoop = {};
-  const win = sdenv.memory.sdWindow;
-  const runloop = sdenv.cache.runloop = { current: 1 };
+  const win = sdenv.memory.window;
+  let runLoop, initTimes = 0, log = false;
 
-  let log = false;
+  function init() {
+    runloop = sdenv.cache.runloop = { current: 1 };
+    initTimes ++;
+  }
+  const openLog = (times = initTimes) => times === initTimes && (log = true);
+  const closeLog = (times = initTimes) => times === initTimes && (log = false);
+  const isLog = (times = initTimes) => times === initTimes && log;
+
+  init();
 
   addUtil((key, idx, name, runlist = '', lens = 0) => {
     /*
@@ -62,22 +70,20 @@ export function loopRunInit() {
         }
       },
       curLoop: () => arr.length,
-      current,
-      loopobj,
-      openLog: () => (log = true),
-      closeLog: () => (log = false),
-      isLog: () => log,
+      current, loopobj, openLog, closeLog, isLog,
     }
   }, 'initLoop');
 
   // 上一个循环的信息
   addUtil(() => ({ ...preLoop }), 'getPreLoop');
 
-  addUtil(() => log, 'getLogLoop');
+  addUtil(isLog, 'getLogLoop');
 
-  addUtil(() => log = false, 'closeLogLoop');
+  addUtil(closeLog, 'closeLogLoop');
 
-  addUtil(() => log = true, 'openLogLoop');
+  addUtil(openLog, 'openLogLoop');
+
+  addUtil(init, 'clearLoop');
 
   addUtil((copy) => {
     // 返回循环体运行数据，copy为复制方法，非浏览器环境需要手动传入
@@ -96,10 +102,15 @@ export function loopRunInit() {
       })
       ascii[key] = _orderBy(Object.entries(ascii[key]).map(([code, num]) => ({ code, num })), 'num', 'desc')
     });
+    const retstr = JSON.stringify(data);
     if (copy) {
-      copy(JSON.stringify(data));
-      console.log('运行时数据复制成功');
+      if (typeof copy === 'function') {
+        copy(retstr);
+        console.log('运行时数据复制成功');
+      } else {
+        console.log(retstr);
+      }
     }
-    return { ascii, ...data };
+    return { ascii, copystr: retstr, ...data };
   }, 'getLoopData');
 }

@@ -1,5 +1,3 @@
-import { isDied, isAlive } from './runtime';
-
 const currentTask = function () {
   this.cache = null;
   this.add = (item) => {
@@ -34,7 +32,7 @@ class Timeout {
 
   addTimeout(func, time, type = 'timeout', idx = this.index.length) {
     const { sdenv } = this;
-    let timekey = new sdenv.memory.sdDate().getTime() - sdenv.memory.runinfo.start + time;
+    let timekey = new sdenv.memory.Date().getTime() - sdenv.memory.runinfo.start + time;
     const obj = {
       func, // 方法
       type, // 类型: timeout interval
@@ -57,9 +55,9 @@ class Timeout {
     } else {
       if (this.timeouts[timekey] === undefined) this.timeouts[timekey] = [];
       this.timeouts[timekey].push(obj);
-      if (isAlive()) this.exec();
+      if (this.sdenv.tools.isAlive()) this.exec();
     }
-    // const win = sdenv.memory.sdWindow;
+    // const win = sdenv.memory.window;
     // win.console.log(`程序时间${timekey}处${type}回调添加成功`);
     return idx;
   }
@@ -94,7 +92,7 @@ class Timeout {
   exec() {
     if (this.isLock) return;
     this.isLock = true;
-    this.sdenv.memory.sdWindow.setTimeout(() => {
+    this.sdenv.memory.setTimeout(() => {
       this.isLock = false;
       this.run();
     }, 0);
@@ -102,7 +100,7 @@ class Timeout {
 
   run() {
     const { sdenv } = this;
-    const win = sdenv.memory.sdWindow;
+    const win = sdenv.memory.window;
     const times = Object.keys(this.timeouts).filter((key) => {
       if (Number(key) + sdenv.memory.runinfo.start <= this.lastOp) return false;
       return true;
@@ -115,11 +113,11 @@ class Timeout {
     });
     for(let i = 0; this.currentTask.getTask(i); i++) {
       const cfg = this.currentTask.getTask(i);
-      if (isDied() || cfg.flag === -1) return;
+      if (this.sdenv.tools.isDied() || cfg.flag === -1) return;
       const funcStr = cfg.func.param ? JSON.stringify(cfg.func.param) : sdenv.tools.compressText(cfg.func.toString());
       win.console.log(`【TIMEOUT RUN】执行程序时间${times[0]}处${cfg.type}回调，延时：${cfg.time}，编号：${cfg.id}，方法：${funcStr}`);
       cfg.flag = 1;
-      cfg.real_time = new sdenv.memory.sdDate().getTime() - sdenv.memory.runinfo.start;
+      cfg.real_time = new sdenv.memory.Date().getTime() - sdenv.memory.runinfo.start;
       try {
         cfg.func();
         win.console.log(`【TIMEOUT RUNED】执行程序时间${times[0]}处${cfg.type}回调，延时：${cfg.time}，编号：${cfg.id}，方法：${funcStr}`);
@@ -129,7 +127,7 @@ class Timeout {
       cfg.flag = 2
     }
     this.currentTask.clear();
-    if (isDied()) return undefined;
+    if (this.sdenv.tools.isDied()) return undefined;
     if (times.length > 1) {
       this.run();
     } else {

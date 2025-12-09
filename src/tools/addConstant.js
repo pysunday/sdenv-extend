@@ -1,4 +1,5 @@
 export function addConstant(object, property, value) {
+  if (typeof object !== 'object') throw new Error(`addConstant方法报错，传入数据非对象: ${object}`);
   Object.defineProperty(object, property, {
     configurable: false,
     enumerable: true,

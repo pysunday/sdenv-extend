@@ -15,7 +15,7 @@ const watcher = (globs) => ({
 
 const updateVersion = () => ({
   renderStart (outputOptions, inputOptions) {
-    outputOptions.footer = () => `SdenvExtend.version = 'V${JSON.parse(fs.readFileSync('package.json', 'utf8')).version}'`
+    outputOptions.footer = () => `SdenvExtend.version='V${JSON.parse(fs.readFileSync('package.json', 'utf8')).version}';SdenvExtend.buildTime='${new Date().toISOString()}'`
   }
 })
 
