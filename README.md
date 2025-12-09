@@ -10,28 +10,24 @@
 
 ## 浏览器端
 
-打包文件下载：`https://github.com/pysunday/sdenv-extend/releases`，文件名为sdenv-extend-iife的js文件即为浏览器端使用文件。
+打包文件下载：`https://raw.githubusercontent.com/pysunday/sdenv-extend/refs/heads/build/sdenv-extend-iife.min.js`，注意缓存延迟！
 
 1. head内引入：`<script type="text/javascript" charset="utf-8" src="/path/to/sdenv-extend-iife.js"></script>`
-2. 初始化：`window.sdenv = new SdenvExtend(cfg)`
-3. html页面中使用：
+2. 初始化：`new SdenvExtend()`，会自动判断是否已经初始化，初始化成功后挂载到`window.sdenv`，并返回实例对象sdenv（用于链式调用）
+3. 使用extend handle拓展方法，应该在网页第一处javascript执行前后添加，即执行html中javascript代码前的最后一处node执行处或者就在该javascript代码内，建议是在html中的第一处javascript代码内使用，如：
 ```javascript
-if (!window.sdenv) window.sdenv = new SdenvExtend();
-```
-4. 使用extend handle拓展方法，应该在网页第一处javascript执行前后添加，即执行html中javascript代码前的最后一处node执行处或者就在该javascript代码内，建议是在html中的第一处javascript代码内使用，如：
-```javascript
-sdenv
+new SdenvExtend()
   .getHandle('battery')('charging_success')
   .getHandle('eval')()
   ...
-  .getHandle('func')();
+  .getHandle('connection')();
 ```
 
 ## API
 
 ### extend handle拓展方法
 
-在SdenvExtend实例化对象后通过链式方法getHandle添加，见上方浏览器端第四条
+在SdenvExtend实例化对象后通过链式方法getHandle添加，见上方浏览器端第3条
 
 #### `.getHandle('battery')(string | object)`
 
@@ -43,7 +39,7 @@ params:
 
 默认值：
 
-```json
+```javascript
 {
   onchargingchange: null,
   onchargingtimechange: null,
@@ -65,7 +61,7 @@ params:
 
 默认值：
 
-```json
+```javascript
 {
   downlink: 6.66,
   effectiveType: "4g",
@@ -74,6 +70,20 @@ params:
   saveData: false,
 }
 ```
+
+#### `.getHandle('window')(object)`
+
+作用：代理window变量，用于打印window代理操作及控制执行结果。
+
+**注意：该方法只在node环境下有效**
+
+params:
+  * object: 包含日志打印、回调、数据处理的钩子对象，可用属性(参考附录一)：log、parse
+  * object.windowGetterUndefinedKeys（Array）: 外部读取window属性时返回undefined
+  * object.windowGetterErrorKeys（Array）: 外部读取window属性时直接报错
+  * object.windowGetterWinKeys（Array）: 外部读取window属性时返回window自身
+
+该handle已经默认内嵌到sdenv中，无需手动开始，并提供getConfig方法在使用时动态设置配置项，如: `sdenv.getConfig('window')({ log: true })`
 
 #### `.getHandle('cookie')(object)`
 

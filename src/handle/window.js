@@ -14,7 +14,7 @@ export function windowHandle(config = {}) {
     ori: undefined,
     proxyRecord: new WeakMap(),
   };
-  ['Undefined', 'Error', 'Own', 'Win'].forEach(key => {
+  ['Undefined', 'Error', 'Win'].forEach(key => {
     const name = `windowGetter${key}Keys`;
     if (config[name] === undefined) config[name] = [];
     if (!Array.isArray(config[name])) throw new Error(`参数${name}值必须为数组请检查！`);

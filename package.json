@@ -9,8 +9,8 @@
     "test:debug": "node --inspect-brk node_modules/.bin/jest --runInBand ./test/",
     "build": "rollup -c && gzip-size build/sdenv-extend-iife.js",
     "lint": "./node_modules/.bin/eslint src/* test/*",
-    "release": "release-it",
-    "auto-deploy-build": "npm run build & python3 ./scripts/auto-deploy-build.py"
+    "release": "release-it && npm run auto-deploy-build",
+    "auto-deploy-build": "npm run build && python3 ./scripts/auto-deploy-build.py"
   },
   "pre-commit": [
     "lint"
