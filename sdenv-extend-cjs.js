@@ -2118,12 +2118,9 @@ const gv = {
     envType: 'browser', // 执行环境类型，node或者browser，初始化时赋予
     // start window proxy
     // 控制window返回undefined的属性名集合
-    windowGetterUndefinedKeys: ["_globalObject", "_sdGlobalObject","_globalProxy","_registeredHandlers","_eventHandlers","_resourceLoader","_document","_origin","_sessionHistory","_virtualConsole","_runScripts","_top","_parent","_frameElement","_length","_pretendToBeVisual","_storageQuota","_commonForOrigin","_currentOriginData","_localStorage","_sessionStorage","_selection","_customElementRegistry","loadTextSync"],
+    windowGetterUndefinedKeys: ["_top","_parent","_length","_globalObject", "_sdGlobalObject","_globalProxy","_registeredHandlers","_eventHandlers","_resourceLoader","_document","_origin","_sessionHistory","_virtualConsole","_runScripts","_frameElement","_pretendToBeVisual","_storageQuota","_commonForOrigin","_currentOriginData","_localStorage","_sessionStorage","_selection","_customElementRegistry","loadTextSync"],
     // 控制window返回not defined报错的的属性名集合
     windowGetterErrorKeys: ['process'],
-    // 避免in window报错的的属性名集合
-    // windowGetterOwnKeys: [Symbol.toStringTag, 'addEventListener', 'removeEventListener', 'dispatchEvent', 'captchaId'],
-    windowGetterOwnKeys: [],
     // 控制window返回自身的属性名集合
     windowGetterWinKeys: ['window', 'top', 'self', 'frames', 'globalThis'],
     // end window proxy
@@ -3780,9 +3777,17 @@ function loopRunInit() {
   const addUtil = sdenv.getTools('addUtil');
   const preLoop = {};
   const win = sdenv.memory.window;
-  const runloop = sdenv.cache.runloop = { current: 1 };
+  let initTimes = 0, log = false;
 
-  let log = false;
+  function init() {
+    runloop = sdenv.cache.runloop = { current: 1 };
+    initTimes ++;
+  }
+  const openLog = (times = initTimes) => times === initTimes && (log = true);
+  const closeLog = (times = initTimes) => times === initTimes && (log = false);
+  const isLog = (times = initTimes) => times === initTimes && log;
+
+  init();
 
   addUtil((key, idx, name, runlist = '', lens = 0) => {
     /*
@@ -3836,22 +3841,20 @@ function loopRunInit() {
         }
       },
       curLoop: () => arr.length,
-      current,
-      loopobj,
-      openLog: () => (log = true),
-      closeLog: () => (log = false),
-      isLog: () => log,
+      current, loopobj, openLog, closeLog, isLog,
     }
   }, 'initLoop');
 
   // 上一个循环的信息
   addUtil(() => ({ ...preLoop }), 'getPreLoop');
 
-  addUtil(() => log, 'getLogLoop');
+  addUtil(isLog, 'getLogLoop');
 
-  addUtil(() => log = false, 'closeLogLoop');
+  addUtil(closeLog, 'closeLogLoop');
 
-  addUtil(() => log = true, 'openLogLoop');
+  addUtil(openLog, 'openLogLoop');
+
+  addUtil(init, 'clearLoop');
 
   addUtil((copy) => {
     // 返回循环体运行数据，copy为复制方法，非浏览器环境需要手动传入
@@ -4002,10 +4005,10 @@ const _setFuncInit = function(win) {
   toString.__proto__ = win.Function.prototype;
 };
 
-const wrapFunc = function(obj, name, callback, autoBind = true) {
-  const originFunc = autoBind ? obj[name].bind(obj) : obj[name];
-  const wrap = (...params) => {
-    return callback(originFunc, ...params);
+const wrapFunc = function(obj, name, callback) {
+  const originFunc = obj[name];
+  const wrap = function (...params) {
+    return callback.call(this, originFunc, ...params);
   };
   setFuncNative(wrap, name, originFunc.length);
   obj[name] = wrap;
@@ -4075,6 +4078,7 @@ function monitor(tar, name, config = {}) {
   const {
     getLog, // 开启get日志
     setLog, // 开启set日志
+    log,
     getKeys = [], // 触发get的debugger的键集合
     setKeys = [], // 触发set的debugger的键集合
     keys = [], // 触发debugger的键集合
@@ -4089,10 +4093,10 @@ function monitor(tar, name, config = {}) {
   tar.sdMonitorName = name;
   const newTar = new win.Proxy(tar, {
     get(target, property, receiver) {
-      if (getLog) win.console.log(`${name} Getting ${property}`);
+      if (getLog || log) win.console.log(`${name} Getting ${property}`);
       if (getKeys.includes(property) || keys.includes(property)) debugger;
       (getCb || cb)?.(property, name);
-      return getParse(property, Reflect.get(target, property, receiver), target);
+      return getParse(property, target[property], target);
     },
     set(target, property, value, receiver) {
       const show = [
@@ -4100,7 +4104,7 @@ function monitor(tar, name, config = {}) {
         win.Math,
         win.navigation
       ].includes(value) && value.toString ? value.toString() : value;
-      if (setLog && !(Array.isArray(target) && property === 'length')) {
+      if ((setLog || log ) && !(Array.isArray(target) && property === 'length')) {
         win.console.log(`${name} Setting ${property} to ${tools.compressText(show)}`);
       }
       if (setKeys.includes(property) || keys.includes(property)) debugger;
@@ -4514,8 +4518,8 @@ function eventHandle(config) {
   const self = this;
   const win = this.memory.window;
   if (typeof config !== 'object') config = {};
-  const { addLog, runLog, log, addCb, runCb, cb, filter = () => true } = config;
-  win.addEventListener = this.getTools('setNativeFuncName')(new Proxy(win.addEventListener, {
+  const { addLog, runLog, log, addCb, runCb, cb, filter = () => true, parse = (type, ...p) => p } = config;
+  win.addEventListener = win.document.addEventListener = this.getTools('setFuncNative')(new Proxy(win.addEventListener, {
     apply: function (target, thisArg, params) {
       if (!filter || !filter(...params)) return;
       const [type, callback] = params;
@@ -4524,14 +4528,14 @@ function eventHandle(config) {
       (addCb || cb)?.(...params);
       return Reflect.apply(target, thisArg, [
         type,
-        async () => {
+        (...p) => {
           (runCb || cb)?.(...params);
           if (runLog || log) win.console.log(`【RUN EVENT】事件名：${type}, 方法：${funcStr}`);
-          callback();
+          callback(...parse(type, p));
         },
       ]);
     },
-  }), 'addEventListener');
+  }), 'addEventListener', 2);
 }
 
 const eventInit = ['addEventListener'];
@@ -5205,7 +5209,7 @@ function windowHandle(config = {}) {
     ori: undefined,
     proxyRecord: new WeakMap(),
   };
-  ['Undefined', 'Error', 'Own', 'Win'].forEach(key => {
+  ['Undefined', 'Error', 'Win'].forEach(key => {
     const name = `windowGetter${key}Keys`;
     if (config[name] === undefined) config[name] = [];
     if (!Array.isArray(config[name])) throw new Error(`参数${name}值必须为数组请检查！`);
@@ -5221,7 +5225,7 @@ function windowHandle(config = {}) {
     })(config.log);
     config.parse = (p => typeof p === 'function' ? p : (val => val))(config.parse);
   });
-  self.getTools('wrapFunc')(vm, 'runInContext', (runInContext, code, context, setting) => {
+  self.getTools('wrapFunc')(vm, 'runInContext', (runInContext, code, context = 'window', setting = {}) => {
     const createContext = Object.create(null);
     if (context === 'window' || String(context) === '[object Window]') {
       if (context !== 'window') realm.ori = context;
@@ -5237,7 +5241,6 @@ function windowHandle(config = {}) {
         },
         ownKeys(target) {
           finishFlag && config.log && config.log("ownKeys");
-          // const ans = Array.from(new Set([...Reflect.ownKeys(realm.ori), ...config.windowGetterOwnKeys]));
           return config.parse(Reflect.ownKeys(realm.ori).filter(it => !config.windowGetterUndefinedKeys.includes(it)), 'ownKeys');
         },
         getOwnPropertyDescriptor(target, prop) {
