@@ -57,8 +57,6 @@ sdenv会缓存原始值，如window及未经handler处理过的原始值，通�
 
 ## API
 
-### config配置项设置
-
 ### extend handle拓展方法
 
 在SdenvExtend实例化对象后通过链式方法getHandle添加，见上方浏览器端第3条
