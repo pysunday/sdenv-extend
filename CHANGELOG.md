@@ -1,5 +1,7 @@
 
 
+## [1.8.2](https://github.com/pysunday/sdenv-extend/compare/1.8.1...1.8.2) (2025-12-10)
+
 ## [1.8.1](https://github.com/pysunday/sdenv-extend/compare/1.8.0...1.8.1) (2025-12-09)
 
 ## [1.8.0](https://github.com/pysunday/sdenv-extend/compare/1.7.0...1.8.0) (2025-12-09)
