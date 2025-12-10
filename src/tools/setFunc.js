@@ -57,10 +57,10 @@ export const _setFuncInit = function(win) {
   toString.__proto__ = win.Function.prototype;
 }
 
-export const wrapFunc = function(obj, name, callback) {
+export const wrapFunc = function(obj, name, callback, isBind = true) {
   const originFunc = obj[name];
   const wrap = function (...params) {
-    return callback.call(this, originFunc, ...params);
+    return callback.call(this, isBind ? originFunc.bind(this) : originFunc, ...params);
   };
   setFuncNative(wrap, name, originFunc.length);
   obj[name] = wrap;

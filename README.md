@@ -2,28 +2,62 @@
 
 用于sdenv补环境框架与真实浏览器加载网页的公共方法与共有处理.
 
-## node端
+## 安装初始化与调用
+
+会自动判断是否已经初始化，初始化成功后挂载到`window.sdenv`，并返回实例对象sdenv（用于链式调用）
+
+### node端
 
 1. 安装包：`npm install sdenv-extend`
 2. 导入：`const SdenvExtend = require('sdenv-extend')`
-3. 初始化(需要传入window对象)：`window.sdenv = new SdenvExtend({ }, window)`
+3. 初始化(需要传入window对象)：`new SdenvExtend({ }, window)`
 
-## 浏览器端
+### 浏览器端
 
-打包文件下载：`https://raw.githubusercontent.com/pysunday/sdenv-extend/refs/heads/build/sdenv-extend-iife.min.js`，注意缓存延迟！
+1. 打包文件下载：`https://raw.githubusercontent.com/pysunday/sdenv-extend/refs/heads/build/sdenv-extend-iife.min.js`，注意缓存延迟！
+2. head内引入：`<script type="text/javascript" charset="utf-8" src="/path/to/sdenv-extend-iife.js"></script>`
+3. 初始化：`new SdenvExtend()`
 
-1. head内引入：`<script type="text/javascript" charset="utf-8" src="/path/to/sdenv-extend-iife.js"></script>`
-2. 初始化：`new SdenvExtend()`，会自动判断是否已经初始化，初始化成功后挂载到`window.sdenv`，并返回实例对象sdenv（用于链式调用）
-3. 使用extend handle拓展方法，应该在网页第一处javascript执行前后添加，即执行html中javascript代码前的最后一处node执行处或者就在该javascript代码内，建议是在html中的第一处javascript代码内使用，如：
+### 挂载handler拓展方法
+
+使用extend handle拓展方法，建议调用代码放在程序代码执行前，示例：
+
 ```javascript
-new SdenvExtend()
+window.sdenv
   .getHandle('battery')('charging_success')
   .getHandle('eval')()
   ...
   .getHandle('connection')();
 ```
 
+部分handler配置项后移，使用getConfig方法传入新配置项，新配置项会与默认配置项合并，如：
+
+```javascript
+window.sdenv.getConfig('window')({ log: true })
+```
+
+### 调用工具方法
+
+将常用工具方法放在`sdenv.tools`中方便外部调用，如：`sdenv.tools.wrapFunc`、`sdenv.tools.monitor`等
+
+### 查看代码执行环境
+
+使用`sdenv.config.isNode`及`sdenv.config.envType`可以判断当前程序运行环境，如：
+
+* 纯node环境：isNode（true）、envType（node）
+* node+vm环境：isNode（false）、envType（node）
+* 浏览器环境：isNode（false）、envType（browser）
+
+### 原始值缓存
+
+sdenv会缓存原始值，如window及未经handler处理过的原始值，通过`sdenv.memory`获取，如：
+
+1. sdenv中环境模拟是在browser目录下，此时通用方法只接收sdenv变量，使用`sdenv.memory.window`获取window值
+2. 使用名为interval的handler后，使用`sdenv.memory.setInterval`获取原生setInterval值
+
 ## API
+
+### config配置项设置
 
 ### extend handle拓展方法
 
@@ -120,12 +154,33 @@ params:
 params:
   * object: 包含日志打印、回调、事件过滤的钩子对象，可用属性(参考附录一)：addLog、runLog、log、addCb、runCb、cb、filter
 
+#### `.getHandle('indexDB')(object)`
+
+作用：`IDBFactory.prototype.open`方法的调用监控封装，[跳转MDN文档](https://developer.mozilla.org/en-US/docs/Web/API/IDBFactory/open)
+
+params:
+  * object: 包含日志打印、回调、事件过滤的钩子对象，可用属性(参考附录一)：addLog、runLog、log、addCb、runCb、cb、filter
+
 #### `.getHandle('ovserver')(object)`
 
 作用：`MutationObserver`方法的调用监控封装，[跳转MDN文档](https://developer.mozilla.org/en-US/docs/Web/API/MutationObserver)
 
 params:
   * object: 包含日志打印、回调、事件过滤的钩子对象，可用属性(参考附录一)：newLog、addLog、runLog、log、newCb、addCb、runCb、cb、filter
+
+#### `.getHandle('request')(object)`
+
+作用：`XMLHttpRequest`类的实例化监控封装，[跳转MDN文档](https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest)
+
+params:
+  * object: 包含日志打印、回调、事件过滤的钩子对象，可用属性(参考附录一)：log、cb
+
+#### `.getHandle('requestFileSystem')(object)`
+
+作用：`requestFileSystem`方法的调用监控封装，[跳转MDN文档](https://developer.mozilla.org/en-US/docs/Web/API/Window/requestFileSystem)
+
+params:
+  * object: 包含日志打印、回调、事件过滤的钩子对象，可用属性(参考附录一)：log、cb、filter
 
 #### `.getHandle('timeout')(object)`
 

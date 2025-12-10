@@ -3,9 +3,6 @@ export const gv = {
   tools: {}, // 内部工具
   utils: {}, // 外部方法
   config: {
-    proxyOpen: false, // 是否允许开启代理
-    randomReturn: undefined, // 随机数值固定
-    randomFixed: false, // 固定日期与随机数，文件：@/config/dateAndRandom.json
     // 强制setInterval的时间设置，如设置的足够大让执行函数不运行，其中：undefined表示通过框架拦截并计算运行时间，0表示不拦截且使用原时间
     timeInterval: undefined,
     timeTimeout: undefined, // 与timeInterval功能类似，区别是控制setTimeout
